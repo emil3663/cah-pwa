@@ -321,7 +321,7 @@ function resolveRound(winnerId) {
   document.getElementById('resultBlack').textContent  = bc.text;
   document.getElementById('resultWhite').textContent  = texts.join(' / ');
   document.getElementById('roundWinnerBox').innerHTML = `🏅 <strong>${escHtml(winner.name)}</strong> wins the round!`;
-  document.getElementById('gameOverPraise').textContent = praise;
+  document.getElementById('roundPraise').textContent  = praise;
 
   // Scoreboard
   const sorted = [...gameState.room.players].sort((a,b) => (gameState.scores[b.id]||0)-(gameState.scores[a.id]||0));
