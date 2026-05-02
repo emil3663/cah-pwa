@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cards Against Humanity</title>
+  <meta name="description" content="Play Cards Against Humanity online — a party game for horrible people." />
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#111111" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- ═══ SCREEN: Landing / Login ═══ -->
+  <div id="screen-landing" class="screen active">
+    <div class="cah-logo">🃏</div>
+    <h1>Cards Against Humanity</h1>
+    <p class="tagline">A party game for <em>horrible</em> people.</p>
+    <div class="landing-form">
+      <input type="text" id="playerName" placeholder="Enter your name…" maxlength="24" />
+      <button class="btn-white" id="btnEnter">Enter the Game</button>
+    </div>
+    <p class="disclaimer">All cards sourced from the open-source <a href="https://github.com/crhallberg/json-against-humanity" target="_blank">json-against-humanity</a> project.</p>
+  </div>
+
+  <!-- ═══ SCREEN: Main Menu ═══ -->
+  <div id="screen-menu" class="screen">
+    <nav class="topbar">
+      <span class="player-greeting">👋 <span id="greetName"></span></span>
+      <button class="btn-ghost" id="btnProfile">👤 Profile</button>
+    </nav>
+    <div class="menu-body">
+      <h2>What would you like to do?</h2>
+      <div class="menu-grid">
+        <button class="menu-card" id="btnCreateRoom">
+          <span class="mc-icon">🏠</span>
+          <span class="mc-label">Create Room</span>
+        </button>
+        <button class="menu-card" id="btnJoinRoom">
+          <span class="mc-icon">🚪</span>
+          <span class="mc-label">Join Room</span>
+        </button>
+        <button class="menu-card" id="btnFriends">
+          <span class="mc-icon">👥</span>
+          <span class="mc-label">Friends</span>
+        </button>
+        <button class="menu-card" id="btnStats">
+          <span class="mc-icon">📊</span>
+          <span class="mc-label">My Stats</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ SCREEN: Create Room ═══ -->
+  <div id="screen-create" class="screen">
+    <nav class="topbar"><button class="btn-ghost back" data-target="menu">← Back</button><span>Create Room</span></nav>
+    <div class="form-body">
+      <label>Room Name</label>
+      <input type="text" id="roomName" placeholder="e.g. Friday Night Chaos" maxlength="30" />
+      <label>Game Mode</label>
+      <div class="mode-selector">
+        <label class="mode-opt"><input type="radio" name="gameMode" value="classic" checked /><span>Classic</span></label>
+        <label class="mode-opt"><input type="radio" name="gameMode" value="wild" /><span>Wild 🔥</span></label>
+        <label class="mode-opt"><input type="radio" name="gameMode" value="question" /><span>Question First ❓</span></label>
+      </div>
+      <label>Max Players</label>
+      <input type="number" id="maxPlayers" value="8" min="3" max="20" />
+      <label>Rounds to Win</label>
+      <input type="number" id="roundsToWin" value="7" min="1" max="30" />
+      <button class="btn-white" id="btnStartRoom">Create &amp; Start</button>
+    </div>
+  </div>
+
+  <!-- ═══ SCREEN: Join Room ═══ -->
+  <div id="screen-join" class="screen">
+    <nav class="topbar"><button class="btn-ghost back" data-target="menu">← Back</button><span>Join Room</span></nav>
+    <div class="form-body">
+      <label>Room Code</label>
+      <input type="text" id="joinCode" placeholder="6-character code" maxlength="6" style="text-transform:uppercase;letter-spacing:4px;" />
+      <button class="btn-white" id="btnJoin">Join</button>
+      <div id="roomList" class="room-list"></div>
+    </div>
+  </div>
+
+  <!-- ═══ SCREEN: Friends ═══ -->
+  <div id="screen-friends" class="screen">
+    <nav class="topbar"><button class="btn-ghost back" data-target="menu">← Back</button><span>Friends</span></nav>
+    <div class="form-body">
+      <label>Add Friend by Name</label>
+      <div class="row"><input type="text" id="friendName" placeholder="Friend's player name" maxlength="24" /><button class="btn-white sm" id="btnAddFriend">Add</button></div>
+      <div id="friendList" class="friend-list"></div>
+    </div>
+  </div>
+
+  <!-- ═══ SCREEN: Stats ═══ -->
+  <div id="screen-stats" class="screen">
+    <nav class="topbar"><button class="btn-ghost back" data-target="menu">← Back</button><span>My Stats</span></nav>
+    <div class="stats-body" id="statsBody"></div>
+  </div>
+
+  <!-- ═══ SCREEN: Lobby ═══ -->
+  <div id="screen-lobby" class="screen">
+    <nav class="topbar"><button class="btn-ghost back" data-target="menu">← Leave</button><span id="lobbyTitle">Lobby</span></nav>
+    <div class="lobby-body">
+      <div class="room-code-box">
+        <p>Share this code:</p>
+        <div class="code-display" id="lobbyCode">——</div>
+      </div>
+      <div class="mode-badge" id="lobbyMode"></div>
+      <h3>Players (<span id="lobbyPlayerCount">1</span>)</h3>
+      <div id="lobbyPlayers" class="player-chips"></div>
+      <button class="btn-white" id="btnStartGame" style="margin-top:28px;">▶ Start Game</button>
+    </div>
+  </div>
+
+  <!-- ═══ SCREEN: Game ═══ -->
+  <div id="screen-game" class="screen">
+    <nav class="game-topbar">
+      <span id="gameRoundInfo">Round 1</span>
+      <span id="gameScoreInfo">Score: 0</span>
+      <button class="btn-ghost" id="btnLeaveGame">Leave</button>
+    </nav>
+
+    <!-- Black card -->
+    <div class="black-card-wrap">
+      <div class="black-card" id="blackCard">
+        <p id="blackCardText">Loading…</p>
+        <span class="pick-badge" id="pickBadge">PICK 1</span>
+      </div>
+    </div>
+
+    <!-- Role indicator -->
+    <div id="czarBanner" class="czar-banner" style="display:none;">👑 You are the Card Czar this round!</div>
+
+    <!-- Hand (white cards) -->
+    <div id="handSection" class="hand-section">
+      <p class="hand-label">Your Hand — tap to select:</p>
+      <div id="handCards" class="hand-cards"></div>
+      <button class="btn-white" id="btnPlayCards" style="display:none;margin:14px auto;display:block;">Play Selected Card(s)</button>
+    </div>
+
+    <!-- Czar judgement area -->
+    <div id="czarSection" class="czar-section" style="display:none;">
+      <p class="hand-label">Choose the best answer:</p>
+      <div id="submittedCards" class="submitted-cards"></div>
+    </div>
+  </div>
+
+  <!-- ═══ SCREEN: Round Result ═══ -->
+  <div id="screen-result" class="screen">
+    <div class="result-body">
+      <div class="result-card-combo">
+        <div class="black-card mini" id="resultBlack"></div>
+        <div class="white-card mini winner-card" id="resultWhite"></div>
+      </div>
+      <div id="roundWinnerBox" class="round-winner-box"></div>
+      <div id="scoreBoard" class="scoreboard"></div>
+      <button class="btn-white" id="btnNextRound">Next Round →</button>
+    </div>
+  </div>
+
+  <!-- ═══ SCREEN: Game Over ═══ -->
+  <div id="screen-gameover" class="screen">
+    <div class="gameover-body">
+      <div class="trophy">🏆</div>
+      <h1>Game Over!</h1>
+      <div id="gameOverWinner" class="gameover-winner"></div>
+      <div id="gameOverPraise" class="gameover-praise"></div>
+      <div id="gameOverScores" class="gameover-scores"></div>
+      <button class="btn-white" id="btnPlayAgain">Play Again</button>
+      <button class="btn-ghost" id="btnBackMenu" style="margin-top:12px;">← Main Menu</button>
+    </div>
+  </div>
+
+  <script src="cards.js"></script>
+  <script src="app.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('service-worker.js').catch(() => {});
+    }
+  </script>
+</body>
+</html>
