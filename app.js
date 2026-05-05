@@ -59,7 +59,7 @@ function initPlayerProfile() {
 
   me.deckProgress.ownedDeckIds = Array.isArray(me.deckProgress.ownedDeckIds) ? me.deckProgress.ownedDeckIds : [];
 
-  if (me.deckProgress.activeDeckId && !me.deckProgress.ownedDeckIds.includes(me.deckProgress.activeDeckId)) {
+  if (me.deckProgress.activeDeckId && !ownsDeck(me.deckProgress.activeDeckId)) {
     me.deckProgress.activeDeckId = null;
   }
 
@@ -81,7 +81,12 @@ function getDeckCoinCost(deck) {
   return getDeckTokenCost(deck) * TOKEN_TO_COIN;
 }
 
+function isAdminUser() {
+  return String(me?.name || '').trim().toLowerCase() === 'admin';
+}
+
 function ownsDeck(deckId) {
+  if (isAdminUser()) return true;
   return me.deckProgress.ownedDeckIds.includes(deckId);
 }
 
@@ -103,6 +108,7 @@ function canUseDeckInRoom(deckId, allowNsfw) {
 }
 
 function hasActiveDeck() {
+  if (isAdminUser()) return true;
   return Boolean(me?.deckProgress?.activeDeckId && ownsDeck(me.deckProgress.activeDeckId));
 }
 
@@ -133,7 +139,7 @@ function renderDeckStore(message = '') {
   const listEl = document.getElementById('deckStoreList');
   const categories = CAH_DECK_CATEGORIES || [];
 
-  const mustClaim = !me.deckProgress.freeStarterClaimed || !hasActiveDeck();
+  const mustClaim = !isAdminUser() && (!me.deckProgress.freeStarterClaimed || !hasActiveDeck());
   msgEl.textContent = message || (mustClaim
     ? 'Claim your free first deck and select an active deck before creating or joining games.'
     : 'Browse by category. Expand groups, select decks, then complete your purchase in checkout.');
@@ -176,7 +182,7 @@ function renderDeckPreviewCard(deck, category) {
   const selected = me.deckProgress.activeDeckId === deck.id;
   const tokenCost = getDeckTokenCost(deck);
   const coinCost = getDeckCoinCost(deck);
-  const isFreeStarterClaim = !me.deckProgress.freeStarterClaimed && deck.id === FREE_STARTER_DECK_ID;
+  const isFreeStarterClaim = !isAdminUser() && !me.deckProgress.freeStarterClaimed && deck.id === FREE_STARTER_DECK_ID;
   const isInCart = deckCart.has(deck.id);
   const coverSrc = getDeckCoverSrc(deck);
 
@@ -471,6 +477,8 @@ document.getElementById('btnProfile').addEventListener('click', () => { showScre
 document.getElementById('btnDecks').addEventListener('click', () => openDeckStore());
 
 /* ─── Create Room ─── */
+let pendingCreateRoomData = null;
+
 document.getElementById('btnStartRoom').addEventListener('click', () => {
   if (!requireDeckAccess('You must claim/select a deck before creating rooms.')) return;
 
@@ -483,39 +491,52 @@ document.getElementById('btnStartRoom').addEventListener('click', () => {
   const code = genCode();
   const clampedBots = Math.max(0, Math.min(BOT_PERSONAS.length, aiPlayers, maxPlayers - 1));
 
-  const humanPlayer = { id: me.id, name: me.name, score: 0, isBot: false };
-  const botPlayers = generateBotPlayers(clampedBots, [humanPlayer.name]);
+  const botPlayers = generateBotPlayers(clampedBots, [me.name]);
+  const botNames = botPlayers.map(b => b.name);
+  
+  const suggestedName = suggestAvailableName(me.name, botNames);
+  const isNameConflict = suggestedName !== me.name;
 
+  if (isNameConflict) {
+    pendingCreateRoomData = { roomName, gameMode, allowNsfw, maxPlayers, code, botPlayers, botNames };
+    showNameConfirmModal('Create Room', `Your name "${me.name}" conflicts with an AI player. Suggest: "${suggestedName}"`, suggestedName);
+  } else {
+    finishCreateRoom(roomName, gameMode, allowNsfw, maxPlayers, code, me.name, botPlayers);
+  }
+});
+
+function finishCreateRoom(roomName, gameMode, allowNsfw, maxPlayers, code, displayName, botPlayers) {
+  const humanPlayer = { id: me.id, name: me.name, displayName, score: 0, isBot: false };
   const room = {
     code,
     name: roomName,
     mode: gameMode,
     allowNsfw,
     maxPlayers,
-    roundsToWin,
     host: me.id,
     players: [humanPlayer, ...botPlayers],
     status: 'lobby',
     createdAt: Date.now()
   };
-
   rooms[code] = room;
   save('cah_rooms', rooms);
-
   currentRoom = room;
   openLobby(room);
-});
+  pendingCreateRoomData = null;
+}
 
 /* ─── Join Room ─── */
+let pendingJoinRoomCode = null;
+
 document.getElementById('btnJoin').addEventListener('click', () => {
   const code = document.getElementById('joinCode').value.trim().toUpperCase();
-  joinRoom(code);
+  requestJoinRoom(code);
 });
 document.getElementById('joinCode').addEventListener('keydown', e => {
   if (e.key === 'Enter') document.getElementById('btnJoin').click();
 });
 
-function joinRoom(code) {
+function requestJoinRoom(code) {
   if (!requireDeckAccess('Claim/select a deck before joining rooms.')) return;
 
   rooms = load('cah_rooms', {});
@@ -529,15 +550,72 @@ function joinRoom(code) {
     return alert('This room has NSFW decks disabled. Please equip a non-NSFW deck first.');
   }
 
-  if (!room.players.find(p => p.id === me.id)) {
-    room.players.push({ id: me.id, name: me.name, score: 0, isBot: false });
-    rooms[code] = room;
-    save('cah_rooms', rooms);
+  if (room.players.find(p => p.id === me.id)) {
+    currentRoom = room;
+    openLobby(room);
+    return;
   }
 
+  const usedNames = room.players.map(p => p.name || p.displayName).filter(Boolean);
+  const suggestedName = suggestAvailableName(me.name, usedNames);
+  const isNameConflict = suggestedName !== me.name;
+
+  if (isNameConflict) {
+    pendingJoinRoomCode = code;
+    showNameConfirmModal('Join Room', `Your name "${me.name}" is taken. Suggest: "${suggestedName}"`, suggestedName);
+  } else {
+    finishJoinRoom(code, me.name);
+  }
+}
+
+function finishJoinRoom(code, displayName) {
+  const room = rooms[code];
+  if (!room) return alert('Room not found.');
+  room.players.push({ id: me.id, name: me.name, displayName, score: 0, isBot: false });
+  rooms[code] = room;
+  save('cah_rooms', rooms);
   currentRoom = room;
   openLobby(room);
+  pendingJoinRoomCode = null;
 }
+
+function joinRoom(code) {
+  requestJoinRoom(code);
+}
+
+function showNameConfirmModal(title, message, suggestion) {
+  document.getElementById('nameConfirmTitle').textContent = title;
+  document.getElementById('nameConfirmMessage').textContent = message;
+  const input = document.getElementById('nameConfirmInput');
+  input.value = suggestion;
+  
+  const suggestionsDiv = document.getElementById('nameSuggestions');
+  suggestionsDiv.innerHTML = '';
+  
+  document.getElementById('nameConfirmModal').classList.remove('hidden');
+  input.focus();
+  input.select();
+}
+
+function closeNameConfirmModal() {
+  document.getElementById('nameConfirmModal').classList.add('hidden');
+  document.getElementById('nameConfirmInput').value = '';
+  pendingCreateRoomData = null;
+  pendingJoinRoomCode = null;
+}
+
+document.getElementById('btnConfirmName').addEventListener('click', () => {
+  const displayName = document.getElementById('nameConfirmInput').value.trim();
+  if (!displayName) return alert('Please enter a name.');
+  
+  if (pendingCreateRoomData) {
+    const { roomName, gameMode, allowNsfw, maxPlayers, code, botPlayers } = pendingCreateRoomData;
+    finishCreateRoom(roomName, gameMode, allowNsfw, maxPlayers, code, displayName, botPlayers);
+  } else if (pendingJoinRoomCode) {
+    finishJoinRoom(pendingJoinRoomCode, displayName);
+  }
+  closeNameConfirmModal();
+});
 
 function renderRoomList() {
   rooms = load('cah_rooms', {});
@@ -911,6 +989,20 @@ function forceRandomAiCzar() {
 }
 
 /* ─── Bot Engine ─── */
+function suggestAvailableName(desiredName, usedNames = []) {
+  const used = new Set((usedNames || []).map(n => n.toLowerCase()));
+  const normalized = (desiredName || '').trim();
+  if (!normalized) return null;
+  const base = normalized;
+  let candidate = base;
+  let suffix = 2;
+  while (used.has(candidate.toLowerCase())) {
+    candidate = `${base} ${suffix}`;
+    suffix++;
+  }
+  return candidate;
+}
+
 function generateBotPlayers(count, usedNames = []) {
   const used = new Set((usedNames || []).map(n => n.toLowerCase()));
   const bots = [];

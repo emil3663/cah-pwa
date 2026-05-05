@@ -1,6 +1,6 @@
 /* ===== Cards Against Humanity — Service Worker ===== */
 
-const CACHE_NAME = 'cah-v11';
+const CACHE_NAME = 'cah-v13';
 const ASSETS = [
   './',
   './index.html',
