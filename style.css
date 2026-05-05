@@ -151,16 +151,533 @@ button:hover { opacity: 0.85; transform: translateY(-1px); }
 }
 .player-chips { display: flex; flex-wrap: wrap; gap: 10px; }
 .player-chip {
-  padding: 8px 16px;
+  padding: 8px 12px;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 20px;
   font-size: 0.9rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
 }
 .player-chip.host { border-color: var(--yellow); color: var(--yellow); }
+.player-chip .bot-avatar {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1px solid #444;
+  object-fit: cover;
+}
 .room-list { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
 .row { display: flex; gap: 10px; }
 .row input { flex: 1; }
+
+.wallet-bar {
+  display: flex;
+  gap: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 0.9rem;
+}
+
+.wallet-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.84rem;
+  color: #d7d7d7;
+}
+
+.deck-store-topbar {
+  gap: 12px;
+}
+
+.deck-store-topbar > span {
+  margin-right: auto;
+}
+
+.deck-store-message {
+  color: var(--grey);
+  font-size: 0.85rem;
+}
+
+.deck-store-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.deck-category-group {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  background: #181818;
+}
+
+.deck-category-header {
+  width: 100%;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 10px;
+  text-align: left;
+  background: #202020;
+  color: #f2f2f2;
+  border: none;
+  border-bottom: 1px solid #313131;
+  padding: 11px 12px;
+  font-weight: 800;
+}
+
+.deck-category-header > span:first-child {
+  overflow-wrap: anywhere;
+}
+
+.category-count {
+  color: #bdbdbd;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.category-toggle {
+  color: #f0f0f0;
+  font-size: 1rem;
+}
+
+.deck-category-body {
+  padding: 12px;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.deck-category-group.collapsed .deck-category-body {
+  display: none;
+}
+
+.deck-category-grid {
+  display: grid;
+  grid-template-columns: 250px 1fr;
+  gap: 12px;
+}
+
+.deck-name-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 440px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.deck-name-item {
+  text-align: left;
+  border: 1px solid #3a3a3a;
+  background: rgba(18, 18, 18, 0.86);
+  color: #dbdbdb;
+  border-radius: 8px;
+  padding: 9px 10px;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.deck-name-item.active {
+  border-color: #f6c90e;
+  color: #fff;
+  background: rgba(40, 40, 40, 0.94);
+}
+
+.deck-preview-panel {
+  min-width: 0;
+}
+
+.deck-empty {
+  color: #cacaca;
+  background: rgba(20, 20, 20, 0.86);
+  border: 1px solid #343434;
+  border-radius: 10px;
+  padding: 12px;
+}
+
+.deck-card {
+  background: rgba(28, 28, 28, 0.92);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px;
+  display: grid;
+  grid-template-columns: minmax(280px, 1fr) 124px 148px;
+  align-items: center;
+  gap: 12px;
+}
+
+.deck-left h4 {
+  font-size: 1rem;
+  margin-bottom: 4px;
+}
+
+.deck-description {
+  color: #d2d2d2;
+  font-size: 0.82rem;
+  line-height: 1.35;
+  margin-bottom: 8px;
+}
+
+.deck-center {
+  display: flex;
+  justify-content: center;
+}
+
+.deck-right {
+  min-width: 140px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  justify-self: end;
+}
+
+.deck-cover-wrap {
+  position: relative;
+  width: 108px;
+  height: 152px;
+  margin: 0 auto 4px;
+  border-radius: 12px;
+  border: 2px solid #d9d9d9;
+  background: #fff;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
+}
+
+.deck-cover-wrap::before,
+.deck-cover-wrap::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 12px;
+  border: 2px solid #cfcfcf;
+  background: #f7f7f7;
+  z-index: -1;
+}
+
+.deck-cover-wrap::before {
+  transform: translate(-7px, 8px) rotate(-7deg);
+}
+
+.deck-cover-wrap::after {
+  transform: translate(7px, 8px) rotate(7deg);
+}
+
+.deck-cover {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 10px;
+}
+
+.deck-meta {
+  display: flex;
+  gap: 8px;
+  color: var(--grey);
+  font-size: 0.8rem;
+  flex-wrap: wrap;
+}
+
+.deck-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.deck-price {
+  font-size: 0.9rem;
+  text-align: right;
+  color: #f1f1f1;
+  font-weight: 700;
+}
+
+.deck-price span {
+  color: var(--grey);
+  font-weight: 600;
+}
+
+.nsfw-opt {
+  margin-top: 2px;
+  width: fit-content;
+}
+
+.nsfw-opt input {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+}
+
+.deck-tag-selected {
+  color: var(--yellow);
+  font-weight: 700;
+}
+
+.deck-store-actions {
+  margin-top: 6px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: #1f1f1f;
+  padding: 10px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+#deckCartSummary {
+  color: var(--grey);
+  font-size: 0.85rem;
+}
+
+.checkout-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.72);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+  padding: 16px;
+}
+
+.checkout-modal.hidden {
+  display: none;
+}
+
+.checkout-card {
+  width: 100%;
+  max-width: 560px;
+  background: #161616;
+  border: 1px solid #3b3b3b;
+  border-radius: 14px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.checkout-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.checkout-note {
+  color: var(--grey);
+  font-size: 0.85rem;
+}
+
+.checkout-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.checkout-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: #222;
+  padding: 10px;
+}
+
+.checkout-item-meta {
+  color: var(--grey);
+  font-size: 0.8rem;
+  margin-top: 2px;
+}
+
+.checkout-total {
+  font-weight: 700;
+  color: #e9e9e9;
+}
+
+@media (max-width: 760px) {
+  .deck-store-topbar {
+    flex-wrap: wrap;
+    align-items: center;
+    row-gap: 6px;
+  }
+
+  .deck-store-topbar > span {
+    order: 2;
+    flex-basis: 100%;
+    margin-right: 0;
+    text-align: center;
+  }
+
+  .wallet-inline {
+    order: 3;
+    width: 100%;
+    justify-content: center;
+  }
+
+  .deck-category-body {
+    padding: 10px;
+  }
+
+  .deck-category-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .deck-name-list {
+    max-height: 240px;
+    padding-right: 0;
+  }
+
+  .deck-name-item {
+    min-height: 40px;
+    font-size: 0.9rem;
+  }
+
+  .deck-card {
+    grid-template-columns: 1fr;
+    text-align: left;
+  }
+
+  .deck-center {
+    justify-content: flex-start;
+  }
+
+  .deck-right {
+    align-items: flex-start;
+  }
+
+  .deck-actions {
+    justify-content: flex-start;
+  }
+
+  .deck-price {
+    text-align: left;
+  }
+
+  .wallet-inline {
+    font-size: 0.78rem;
+    gap: 8px;
+  }
+
+  .deck-store-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  #deckCartSummary {
+    text-align: center;
+  }
+
+  #btnOpenCheckout {
+    width: 100%;
+  }
+
+  .checkout-card {
+    max-width: 100%;
+    padding: 14px;
+  }
+
+  .checkout-item {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .checkout-item .btn-ghost {
+    width: 100%;
+  }
+}
+
+@media (max-width: 420px) {
+  .topbar,
+  .game-topbar {
+    padding: 10px 12px;
+  }
+
+  .form-body,
+  .lobby-body,
+  .stats-body {
+    padding: 20px 12px;
+  }
+
+  .deck-category-header {
+    grid-template-columns: 1fr auto;
+    grid-template-areas:
+      'title toggle'
+      'count count';
+    row-gap: 4px;
+    column-gap: 8px;
+    padding: 10px;
+  }
+
+  .deck-category-header > span:first-child {
+    grid-area: title;
+    font-size: 0.93rem;
+  }
+
+  .category-toggle {
+    grid-area: toggle;
+    justify-self: end;
+  }
+
+  .category-count {
+    grid-area: count;
+    font-size: 0.74rem;
+  }
+
+  .deck-card {
+    padding: 10px;
+    gap: 10px;
+  }
+
+  .deck-left h4 {
+    font-size: 0.95rem;
+  }
+
+  .deck-description {
+    font-size: 0.8rem;
+  }
+
+  .deck-cover-wrap {
+    width: 94px;
+    height: 134px;
+  }
+
+  .checkout-head {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .checkout-head .btn-ghost {
+    width: 100%;
+  }
+}
+
+@media (max-width: 340px) {
+  .menu-grid,
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .btn-white,
+  .btn-ghost {
+    width: 100%;
+  }
+
+  .deck-name-item {
+    font-size: 0.84rem;
+    padding: 8px;
+  }
+}
 
 /* ── Friends ── */
 .friend-list { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
@@ -192,12 +709,14 @@ button:hover { opacity: 0.85; transform: translateY(-1px); }
 .game-topbar {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
+  gap: 10px;
   background: var(--black);
   padding: 12px 20px;
   flex-shrink: 0;
 }
 #gameRoundInfo, #gameScoreInfo { font-size: 0.9rem; font-weight: 700; }
+#gameScoreInfo { margin-right: auto; }
 
 .black-card-wrap { padding: 20px; display: flex; justify-content: center; }
 .black-card {

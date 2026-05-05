@@ -1,13 +1,22 @@
 /* ===== Cards Against Humanity — Service Worker ===== */
 
-const CACHE_NAME = 'cah-v1';
+const CACHE_NAME = 'cah-v11';
 const ASSETS = [
   './',
   './index.html',
-  './style.css',
-  './app.js',
-  './cards.js',
-  './manifest.json'
+  './style.css?v=12',
+  './app.js?v=12',
+  './cards.js?v=12',
+  './manifest.json',
+  './icons/bot-skeeter.svg',
+  './icons/bot-sally.svg',
+  './icons/bot-linus.svg',
+  './icons/deck-general-classic.svg',
+  './icons/deck-general-edge.svg',
+  './icons/deck-general-absurd.svg',
+  './icons/deck-special-featured.svg',
+  './icons/deck-special-chaos.svg',
+  './icons/deck-special-apex.svg'
 ];
 
 self.addEventListener('install', event => {

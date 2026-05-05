@@ -8,7 +8,7 @@
   <link rel="manifest" href="manifest.json" />
   <meta name="theme-color" content="#111111" />
   <link rel="apple-touch-icon" href="icons/icon-192.png" />
-  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="style.css?v=12" />
 </head>
 <body>
 
@@ -21,7 +21,7 @@
       <input type="text" id="playerName" placeholder="Enter your name…" maxlength="24" />
       <button class="btn-white" id="btnEnter">Enter the Game</button>
     </div>
-    <p class="disclaimer">All cards sourced from the open-source <a href="https://github.com/crhallberg/json-against-humanity" target="_blank">json-against-humanity</a> project.</p>
+    <p class="disclaimer">Deck content sourced from the open-source <a href="https://github.com/crhallberg/json-against-humanity" target="_blank" rel="noopener noreferrer">json-against-humanity</a> project (CC BY-NC-SA 4.0).</p>
   </div>
 
   <!-- ═══ SCREEN: Main Menu ═══ -->
@@ -49,6 +49,43 @@
           <span class="mc-icon">📊</span>
           <span class="mc-label">My Stats</span>
         </button>
+        <button class="menu-card" id="btnDecks">
+          <span class="mc-icon">🗂️</span>
+          <span class="mc-label">Decks</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ SCREEN: Deck Store ═══ -->
+  <div id="screen-decks" class="screen">
+    <nav class="topbar deck-store-topbar">
+      <button class="btn-ghost back" data-target="menu">← Back</button>
+      <span>Deck Store</span>
+      <div class="wallet-inline" id="walletBar">
+        <span>🪙 <strong id="walletCoins">0</strong></span>
+        <span>🔷 <strong id="walletTokens">0</strong></span>
+      </div>
+    </nav>
+    <div class="form-body">
+      <div id="deckStoreMessage" class="deck-store-message"></div>
+      <div id="deckStoreList" class="deck-store-list"></div>
+      <div class="deck-store-actions">
+        <span id="deckCartSummary">No decks selected.</span>
+        <button class="btn-white sm" id="btnOpenCheckout" disabled>Checkout</button>
+      </div>
+    </div>
+
+    <div id="deckCheckoutModal" class="checkout-modal hidden" role="dialog" aria-modal="true" aria-labelledby="checkoutTitle">
+      <div class="checkout-card">
+        <div class="checkout-head">
+          <h3 id="checkoutTitle">Deck Checkout</h3>
+          <button class="btn-ghost sm" id="btnCloseCheckout">Close</button>
+        </div>
+        <p class="checkout-note">Review selected decks. You can remove any before completing purchase.</p>
+        <div id="checkoutDeckList" class="checkout-list"></div>
+        <div class="checkout-total" id="checkoutTotals"></div>
+        <button class="btn-white" id="btnConfirmCheckout">Confirm Purchase</button>
       </div>
     </div>
   </div>
@@ -65,8 +102,11 @@
         <label class="mode-opt"><input type="radio" name="gameMode" value="wild" /><span>Wild 🔥</span></label>
         <label class="mode-opt"><input type="radio" name="gameMode" value="question" /><span>Question First ❓</span></label>
       </div>
+      <label class="mode-opt nsfw-opt"><input type="checkbox" id="allowNsfwToggle" /><span>Allow Dark/NSFW Decks</span></label>
       <label>Max Players</label>
       <input type="number" id="maxPlayers" value="8" min="3" max="20" />
+      <label>AI Players (for testing)</label>
+      <input type="number" id="aiPlayers" value="0" min="0" max="3" />
       <label>Rounds to Win</label>
       <input type="number" id="roundsToWin" value="7" min="1" max="30" />
       <button class="btn-white" id="btnStartRoom">Create &amp; Start</button>
@@ -120,6 +160,7 @@
     <nav class="game-topbar">
       <span id="gameRoundInfo">Round 1</span>
       <span id="gameScoreInfo">Score: 0</span>
+      <button class="btn-ghost" id="btnForceAiCzar" title="Force a random AI as Card Czar">🎲 AI Czar</button>
       <button class="btn-ghost" id="btnLeaveGame">Leave</button>
     </nav>
 
@@ -138,6 +179,7 @@
     <div id="handSection" class="hand-section">
       <p class="hand-label">Your Hand — tap to select:</p>
       <div id="handCards" class="hand-cards"></div>
+      <button class="btn-ghost" id="btnRerollCard" style="margin:0 auto 8px;display:block;">Reroll Selected (3 🪙)</button>
       <button class="btn-white" id="btnPlayCards" style="display:none;margin:14px auto;display:block;">Play Selected Card(s)</button>
     </div>
 
@@ -175,8 +217,8 @@
     </div>
   </div>
 
-  <script src="cards.js"></script>
-  <script src="app.js"></script>
+  <script src="cards.js?v=12"></script>
+  <script src="app.js?v=12"></script>
   <script>
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('service-worker.js').catch(() => {});
