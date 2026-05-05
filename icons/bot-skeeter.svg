@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Skeeter mascot">
+  <defs>
+    <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#1f2a44"/>
+      <stop offset="1" stop-color="#0f1320"/>
+    </linearGradient>
+  </defs>
+  <rect width="128" height="128" rx="24" fill="url(#bg)"/>
+  <ellipse cx="64" cy="70" rx="24" ry="28" fill="#2b2b2b"/>
+  <circle cx="54" cy="66" r="4" fill="#f6c90e"/>
+  <circle cx="74" cy="66" r="4" fill="#f6c90e"/>
+  <path d="M50 82c6 6 22 6 28 0" stroke="#f6c90e" stroke-width="4" fill="none" stroke-linecap="round"/>
+  <path d="M26 54c8-12 18-16 30-12" stroke="#d8dde8" stroke-width="6" fill="none" stroke-linecap="round"/>
+  <path d="M102 54c-8-12-18-16-30-12" stroke="#d8dde8" stroke-width="6" fill="none" stroke-linecap="round"/>
+  <path d="M64 40v-14" stroke="#f6c90e" stroke-width="5" stroke-linecap="round"/>
+  <circle cx="64" cy="24" r="5" fill="#f6c90e"/>
+  <path d="M40 96l-14 12M88 96l14 12" stroke="#9297a3" stroke-width="5" stroke-linecap="round"/>
+</svg>

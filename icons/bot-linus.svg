@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Linus small skeletal mascot">
+  <defs>
+    <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#2a2a2a"/>
+      <stop offset="1" stop-color="#101010"/>
+    </linearGradient>
+  </defs>
+  <rect width="128" height="128" rx="24" fill="url(#bg)"/>
+  <circle cx="64" cy="48" r="24" fill="#f2f2f2"/>
+  <circle cx="56" cy="46" r="5" fill="#111"/>
+  <circle cx="72" cy="46" r="5" fill="#111"/>
+  <path d="M58 58h12" stroke="#111" stroke-width="4" stroke-linecap="round"/>
+  <path d="M64 72v26" stroke="#f2f2f2" stroke-width="6" stroke-linecap="round"/>
+  <path d="M46 88h36" stroke="#f2f2f2" stroke-width="6" stroke-linecap="round"/>
+  <path d="M50 104h28" stroke="#f2f2f2" stroke-width="6" stroke-linecap="round"/>
+  <circle cx="40" cy="96" r="5" fill="#f2f2f2"/>
+  <circle cx="88" cy="96" r="5" fill="#f2f2f2"/>
+</svg>
