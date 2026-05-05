@@ -88,20 +88,6 @@
         <button class="btn-white" id="btnConfirmCheckout">Confirm Purchase</button>
       </div>
     </div>
-
-    <!-- Name Confirmation Modal -->
-    <div id="nameConfirmModal" class="checkout-modal hidden" role="dialog" aria-modal="true" aria-labelledby="nameConfirmTitle">
-      <div class="checkout-card">
-        <div class="checkout-head">
-          <h3 id="nameConfirmTitle">Confirm Your Name</h3>
-        </div>
-        <p id="nameConfirmMessage" style="margin-bottom:16px;"></p>
-        <label>Display Name in Room</label>
-        <input type="text" id="nameConfirmInput" placeholder="Your name" maxlength="24" style="margin-bottom:16px;" />
-        <div id="nameSuggestions" style="margin-bottom:16px;"></div>
-        <button class="btn-white" id="btnConfirmName">Confirm &amp; Join</button>
-      </div>
-    </div>
   </div>
 
   <!-- ═══ SCREEN: Create Room ═══ -->
@@ -228,6 +214,20 @@
       <div id="gameOverScores" class="gameover-scores"></div>
       <button class="btn-white" id="btnPlayAgain">Play Again</button>
       <button class="btn-ghost" id="btnBackMenu" style="margin-top:12px;">← Main Menu</button>
+    </div>
+  </div>
+
+  <!-- ═══ NAME CONFIRMATION MODAL (Global) ═══ -->
+  <div id="nameConfirmModal" class="checkout-modal hidden" role="dialog" aria-modal="true" aria-labelledby="nameConfirmTitle">
+    <div class="checkout-card">
+      <div class="checkout-head">
+        <h3 id="nameConfirmTitle">Confirm Your Name</h3>
+      </div>
+      <p id="nameConfirmMessage" style="margin-bottom:16px;"></p>
+      <label>Display Name in Room</label>
+      <input type="text" id="nameConfirmInput" placeholder="Your name" maxlength="24" style="margin-bottom:16px;" />
+      <div id="nameSuggestions" style="margin-bottom:16px;"></div>
+      <button class="btn-white" id="btnConfirmName">Confirm &amp; Join</button>
     </div>
   </div>
 
