@@ -97,6 +97,9 @@ project (CC BY-NC-SA 4.0).
 | RM-09 | AI cap respects max players | Bots are limited to maxPlayers - 1 | ⬜ |
 | RM-10 | Persona order in lobby | Skeeter, Sally, then Linus when count increases | ⬜ |
 | RM-11 | Deck gate on create/join | User without active deck is redirected to deck store | ⬜ |
+| RM-12 | Firestore-backed room create | Creating room writes rooms/{code} and opens lobby | ⬜ |
+| RM-13 | Firestore-backed room join | Joining adds player in rooms/{code}.players in real time | ⬜ |
+| RM-14 | Lobby realtime sync | Two clients in same room see live player list updates | ⬜ |
 
 ### 3.3 Game Modes
 

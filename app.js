@@ -33,6 +33,8 @@ let deckCategoryCollapsed = {};
 let deckPreviewByCategory = {};
 let profileSyncTimer = null;
 let authBusy = false;
+let unsubscribeRoomListener = null;
+let unsubscribeRoomListListener = null;
 
 const BOT_PERSONAS = [
   { key: 'skeeter', name: 'Skeeter', mode: 'spicy', avatar: 'icons/bot-skeeter.svg' },
@@ -42,6 +44,15 @@ const BOT_PERSONAS = [
 
 /* ─── Screen management ─── */
 function showScreen(id) {
+  if (id !== 'lobby' && unsubscribeRoomListener) {
+    unsubscribeRoomListener();
+    unsubscribeRoomListener = null;
+  }
+  if (id !== 'join' && unsubscribeRoomListListener) {
+    unsubscribeRoomListListener();
+    unsubscribeRoomListListener = null;
+  }
+
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById('screen-' + id).classList.add('active');
 }
@@ -220,6 +231,107 @@ function queueProfileSync(profile) {
   profileSyncTimer = setTimeout(() => {
     syncProfileToCloud(profile).catch(() => {});
   }, 350);
+}
+
+function useFirestoreRoomSync() {
+  return Boolean(window.firebaseDb && window.firebaseAuth?.currentUser);
+}
+
+function stopRoomSubscriptions() {
+  if (unsubscribeRoomListener) {
+    unsubscribeRoomListener();
+    unsubscribeRoomListener = null;
+  }
+  if (unsubscribeRoomListListener) {
+    unsubscribeRoomListListener();
+    unsubscribeRoomListListener = null;
+  }
+}
+
+function roomDocRef(code) {
+  return window.firebaseDb.collection('rooms').doc(String(code || '').toUpperCase());
+}
+
+async function createRoomBackend(room) {
+  const payload = { ...room, updatedAt: Date.now() };
+  await roomDocRef(room.code).set(payload);
+  return payload;
+}
+
+async function fetchRoomBackend(code) {
+  const snap = await roomDocRef(code).get();
+  if (!snap.exists) return null;
+  return snap.data();
+}
+
+async function setRoomBackend(room) {
+  const payload = { ...room, updatedAt: Date.now() };
+  await roomDocRef(room.code).set(payload, { merge: true });
+  return payload;
+}
+
+async function joinRoomBackend(code, player) {
+  const ref = roomDocRef(code);
+  return window.firebaseDb.runTransaction(async tx => {
+    const snap = await tx.get(ref);
+    if (!snap.exists) throw new Error('ROOM_NOT_FOUND');
+
+    const room = snap.data();
+    if (room.status !== 'lobby') throw new Error('ROOM_NOT_LOBBY');
+    if ((room.players || []).length >= room.maxPlayers) throw new Error('ROOM_FULL');
+
+    if ((room.players || []).some(p => p.id === player.id)) return room;
+
+    const updated = {
+      ...room,
+      players: [...(room.players || []), player],
+      updatedAt: Date.now()
+    };
+    tx.set(ref, updated, { merge: true });
+    return updated;
+  });
+}
+
+function renderOpenRoomList(openRooms) {
+  const list = document.getElementById('roomList');
+  if (!openRooms.length) {
+    list.innerHTML = '<p style="color:#555;text-align:center;margin-top:20px;">No open rooms found.</p>';
+    return;
+  }
+
+  list.innerHTML = '<p style="color:#888;font-size:0.85rem;margin-bottom:8px;">Open rooms:</p>' +
+    openRooms.map(r => `<div style="background:#222;border:1px solid #333;border-radius:10px;padding:12px 16px;cursor:pointer;"
+      onclick="joinRoom('${r.code}')">
+      <strong>${escHtml(r.name)}</strong> <span style="color:#f6c90e;letter-spacing:2px;">${r.code}</span>
+      <span style="color:#555;font-size:0.8rem;margin-left:10px;">${(r.players || []).length}/${r.maxPlayers} players · ${r.mode}</span>
+    </div>`).join('');
+}
+
+function subscribeOpenRooms() {
+  if (!useFirestoreRoomSync()) return;
+  if (unsubscribeRoomListListener) unsubscribeRoomListListener();
+
+  unsubscribeRoomListListener = window.firebaseDb.collection('rooms')
+    .where('status', '==', 'lobby')
+    .limit(30)
+    .onSnapshot(snapshot => {
+      const openRooms = snapshot.docs.map(d => d.data());
+      renderOpenRoomList(openRooms);
+    }, () => {
+      renderRoomList();
+    });
+}
+
+function subscribeLobbyRoom(code) {
+  if (!useFirestoreRoomSync()) return;
+  if (unsubscribeRoomListener) unsubscribeRoomListener();
+
+  unsubscribeRoomListener = roomDocRef(code).onSnapshot(snap => {
+    if (!snap.exists) return;
+    currentRoom = snap.data();
+    renderLobbyMeta(currentRoom);
+    refreshLobbyPlayers(currentRoom);
+  });
 }
 
 /* ─── Profile / Economy ─── */
@@ -757,6 +869,7 @@ document.getElementById('btnJoinRoom').addEventListener('click', () => {
   if (!requireDeckAccess('Claim or select a deck before joining rooms.')) return;
   showScreen('join');
   renderRoomList();
+  if (useFirestoreRoomSync()) subscribeOpenRooms();
 });
 document.getElementById('btnFriends').addEventListener('click', () => { showScreen('friends'); renderFriends(); });
 document.getElementById('btnStats').addEventListener('click', () => { showScreen('stats'); renderStats(); });
@@ -766,7 +879,7 @@ document.getElementById('btnDecks').addEventListener('click', () => openDeckStor
 /* ─── Create Room ─── */
 let pendingCreateRoomData = null;
 
-document.getElementById('btnStartRoom').addEventListener('click', () => {
+document.getElementById('btnStartRoom').addEventListener('click', async () => {
   if (!requireDeckAccess('You must claim/select a deck before creating rooms.')) return;
 
   const roomName = document.getElementById('roomName').value.trim() || me.name + "'s Room";
@@ -788,11 +901,11 @@ document.getElementById('btnStartRoom').addEventListener('click', () => {
     pendingCreateRoomData = { roomName, gameMode, allowNsfw, maxPlayers, code, botPlayers, botNames };
     showNameConfirmModal('Create Room', `Your name "${me.name}" conflicts with an AI player. Suggest: "${suggestedName}"`, suggestedName);
   } else {
-    finishCreateRoom(roomName, gameMode, allowNsfw, maxPlayers, code, me.name, botPlayers);
+    await finishCreateRoom(roomName, gameMode, allowNsfw, maxPlayers, code, me.name, botPlayers);
   }
 });
 
-function finishCreateRoom(roomName, gameMode, allowNsfw, maxPlayers, code, displayName, botPlayers) {
+async function finishCreateRoom(roomName, gameMode, allowNsfw, maxPlayers, code, displayName, botPlayers) {
   const humanPlayer = { id: me.id, name: me.name, displayName, score: 0, isBot: false };
   const room = {
     code,
@@ -805,8 +918,13 @@ function finishCreateRoom(roomName, gameMode, allowNsfw, maxPlayers, code, displ
     status: 'lobby',
     createdAt: Date.now()
   };
-  rooms[code] = room;
-  save('cah_rooms', rooms);
+  if (useFirestoreRoomSync()) {
+    await createRoomBackend(room);
+  } else {
+    rooms[code] = room;
+    save('cah_rooms', rooms);
+  }
+
   currentRoom = room;
   openLobby(room);
   pendingCreateRoomData = null;
@@ -815,19 +933,24 @@ function finishCreateRoom(roomName, gameMode, allowNsfw, maxPlayers, code, displ
 /* ─── Join Room ─── */
 let pendingJoinRoomCode = null;
 
-document.getElementById('btnJoin').addEventListener('click', () => {
+document.getElementById('btnJoin').addEventListener('click', async () => {
   const code = document.getElementById('joinCode').value.trim().toUpperCase();
-  requestJoinRoom(code);
+  await requestJoinRoom(code);
 });
 document.getElementById('joinCode').addEventListener('keydown', e => {
   if (e.key === 'Enter') document.getElementById('btnJoin').click();
 });
 
-function requestJoinRoom(code) {
+async function requestJoinRoom(code) {
   if (!requireDeckAccess('Claim/select a deck before joining rooms.')) return;
 
-  rooms = load('cah_rooms', {});
-  const room = rooms[code];
+  let room = null;
+  if (useFirestoreRoomSync()) {
+    room = await fetchRoomBackend(code);
+  } else {
+    rooms = load('cah_rooms', {});
+    room = rooms[code];
+  }
   if (!room) return alert('Room not found. Check the code and try again.');
   if (room.status !== 'lobby') return alert('That game has already started.');
   if (room.players.length >= room.maxPlayers) return alert('Room is full!');
@@ -851,11 +974,26 @@ function requestJoinRoom(code) {
     pendingJoinRoomCode = code;
     showNameConfirmModal('Join Room', `Your name "${me.name}" is taken. Suggest: "${suggestedName}"`, suggestedName);
   } else {
-    finishJoinRoom(code, me.name);
+    await finishJoinRoom(code, me.name);
   }
 }
 
-function finishJoinRoom(code, displayName) {
+async function finishJoinRoom(code, displayName) {
+  if (useFirestoreRoomSync()) {
+    try {
+      const room = await joinRoomBackend(code, { id: me.id, name: me.name, displayName, score: 0, isBot: false });
+      currentRoom = room;
+      openLobby(room);
+      pendingJoinRoomCode = null;
+      return;
+    } catch (err) {
+      if (String(err.message) === 'ROOM_NOT_FOUND') return alert('Room not found.');
+      if (String(err.message) === 'ROOM_NOT_LOBBY') return alert('That game has already started.');
+      if (String(err.message) === 'ROOM_FULL') return alert('Room is full!');
+      return alert('Could not join room right now. Please try again.');
+    }
+  }
+
   const room = rooms[code];
   if (!room) return alert('Room not found.');
   room.players.push({ id: me.id, name: me.name, displayName, score: 0, isBot: false });
@@ -866,8 +1004,8 @@ function finishJoinRoom(code, displayName) {
   pendingJoinRoomCode = null;
 }
 
-function joinRoom(code) {
-  requestJoinRoom(code);
+async function joinRoom(code) {
+  await requestJoinRoom(code);
 }
 
 function showNameConfirmModal(title, message, suggestion) {
@@ -891,46 +1029,46 @@ function closeNameConfirmModal() {
   pendingJoinRoomCode = null;
 }
 
-document.getElementById('btnConfirmName').addEventListener('click', () => {
+document.getElementById('btnConfirmName').addEventListener('click', async () => {
   const displayName = document.getElementById('nameConfirmInput').value.trim();
   if (!displayName) return alert('Please enter a name.');
-  
+
   if (pendingCreateRoomData) {
     const { roomName, gameMode, allowNsfw, maxPlayers, code, botPlayers } = pendingCreateRoomData;
-    finishCreateRoom(roomName, gameMode, allowNsfw, maxPlayers, code, displayName, botPlayers);
+    await finishCreateRoom(roomName, gameMode, allowNsfw, maxPlayers, code, displayName, botPlayers);
   } else if (pendingJoinRoomCode) {
-    finishJoinRoom(pendingJoinRoomCode, displayName);
+    await finishJoinRoom(pendingJoinRoomCode, displayName);
   }
   closeNameConfirmModal();
 });
 
 function renderRoomList() {
-  rooms = load('cah_rooms', {});
-  const list = document.getElementById('roomList');
-  const open = Object.values(rooms).filter(r => r.status === 'lobby');
-  if (!open.length) {
-    list.innerHTML = '<p style="color:#555;text-align:center;margin-top:20px;">No open rooms found.</p>';
+  if (useFirestoreRoomSync()) {
+    subscribeOpenRooms();
     return;
   }
 
-  list.innerHTML = '<p style="color:#888;font-size:0.85rem;margin-bottom:8px;">Open rooms:</p>' +
-    open.map(r => `<div style="background:#222;border:1px solid #333;border-radius:10px;padding:12px 16px;cursor:pointer;"
-      onclick="joinRoom('${r.code}')">
-      <strong>${escHtml(r.name)}</strong> <span style="color:#f6c90e;letter-spacing:2px;">${r.code}</span>
-      <span style="color:#555;font-size:0.8rem;margin-left:10px;">${r.players.length}/${r.maxPlayers} players · ${r.mode}</span>
-    </div>`).join('');
+  rooms = load('cah_rooms', {});
+  const open = Object.values(rooms).filter(r => r.status === 'lobby');
+  renderOpenRoomList(open);
 }
 
 window.joinRoom = joinRoom;
 
 /* ─── Lobby ─── */
-function openLobby(room) {
+function renderLobbyMeta(room) {
   document.getElementById('lobbyTitle').textContent = room.name;
   document.getElementById('lobbyCode').textContent = room.code;
   const nsfwLabel = room.allowNsfw === false ? ' · NSFW Off' : ' · NSFW On';
   document.getElementById('lobbyMode').textContent = '🎮 Mode: ' + room.mode.charAt(0).toUpperCase() + room.mode.slice(1) + nsfwLabel;
+}
+
+function openLobby(room) {
+  currentRoom = room;
+  renderLobbyMeta(room);
   showScreen('lobby');
   refreshLobbyPlayers(room);
+  if (useFirestoreRoomSync()) subscribeLobbyRoom(room.code);
 }
 
 function refreshLobbyPlayers(room) {
@@ -942,7 +1080,7 @@ function refreshLobbyPlayers(room) {
     </div>`).join('');
 }
 
-document.getElementById('btnStartGame').addEventListener('click', () => {
+document.getElementById('btnStartGame').addEventListener('click', async () => {
   if (!requireDeckAccess('Select an active deck before starting the game.')) return;
   if (!currentRoom) return;
 
@@ -954,8 +1092,12 @@ document.getElementById('btnStartGame').addEventListener('click', () => {
   }
 
   currentRoom.status = 'playing';
-  rooms[currentRoom.code] = currentRoom;
-  save('cah_rooms', rooms);
+  if (useFirestoreRoomSync()) {
+    await setRoomBackend(currentRoom);
+  } else {
+    rooms[currentRoom.code] = currentRoom;
+    save('cah_rooms', rooms);
+  }
   startGame(currentRoom);
 });
 

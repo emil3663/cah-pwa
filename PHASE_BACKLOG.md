@@ -4,14 +4,14 @@
 Track the remaining long-term roadmap items as concrete phases so the team can execute in order.
 
 ## Phase A: Firestore Security Hardening
-- [ ] Restrict `users/{uid}` reads/writes to authenticated owner only.
-- [ ] Deny all other collections by default.
-- [ ] Verify with manual read/write tests as two different users.
+- [x] Restrict `users/{uid}` reads/writes to authenticated owner only.
+- [x] Deny all other collections by default.
+- [x] Verify with manual read/write tests as two different users.
 
 ## Phase B: Realtime Multiplayer Foundation
-- [ ] Choose backend transport (Socket.IO service or Firebase Realtime path).
-- [ ] Move room state from localStorage to backend state.
-- [ ] Sync lobby joins/leaves and room updates across devices.
+- [x] Choose backend transport (Firestore room documents with real-time listeners).
+- [x] Move room state from localStorage to backend state.
+- [x] Sync lobby joins/leaves and room updates across devices.
 
 ## Phase C: Real Multiplayer Game Loop
 - [ ] Sync round progression and submissions in real-time.
