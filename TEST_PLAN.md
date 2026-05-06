@@ -1,7 +1,7 @@
 # 🃏 Cards Against Humanity — Test Plan
 
-**Version:** 1.0  
-**Last updated:** 2026-05-02  
+**Version:** 1.1  
+**Last updated:** 2026-05-06  
 **Status:** In active development
 
 ---
@@ -23,7 +23,8 @@ project (CC BY-NC-SA 4.0).
 
 | Feature | Status | Notes |
 |---------|--------|-------|
-| Player name / login | ✅ Done | localStorage |
+| Firebase email auth | ✅ Done | Email/password enabled |
+| Cloud user profile sync | ✅ Done | Firestore users/{uid} |
 | Create room with code | ✅ Done | 6-char alphanumeric code |
 | Join room by code | ✅ Done | |
 | Open room browser list | ✅ Done | Shows all open rooms |
@@ -61,14 +62,18 @@ project (CC BY-NC-SA 4.0).
 
 ## 3. Test Cases
 
-### 3.1 Landing / Login
+### 3.1 Authentication / Landing
 
 | ID | Test | Expected Result | Status |
 |----|------|-----------------|--------|
-| LG-01 | Enter name and click Enter | Main menu shown with greeting | ⬜ |
-| LG-02 | Empty name submit | Alert: "Please enter your name!" | ⬜ |
-| LG-03 | Name persists on reload | Name pre-filled on return visit | ⬜ |
-| LG-04 | Long name (24 chars max) | Input capped at 24 characters | ⬜ |
+| LG-01 | Create account with username/email/password | User account created and main menu shown | ⬜ |
+| LG-02 | Sign in with existing email/password | Existing profile loads and main menu shown | ⬜ |
+| LG-03 | Sign-up with weak password (<6) | Inline auth error is shown | ⬜ |
+| LG-04 | Missing email or password on sign in | Inline auth error is shown | ⬜ |
+| LG-05 | Session restore on refresh | User remains signed in and lands in menu | ⬜ |
+| LG-06 | Username max length | Username input caps at 24 characters | ⬜ |
+| LG-07 | Firestore profile write on first signup | users/{uid} doc created with username/stats/economy/deckProgress | ⬜ |
+| LG-08 | Firestore profile sync after stats/economy changes | Cloud profile reflects latest local changes | ⬜ |
 
 ### 3.2 Room Management
 

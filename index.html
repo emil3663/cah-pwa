@@ -18,8 +18,12 @@
     <h1>Cards Against Humanity</h1>
     <p class="tagline">A party game for <em>horrible</em> people.</p>
     <div class="landing-form">
-      <input type="text" id="playerName" placeholder="Enter your name…" maxlength="24" />
-      <button class="btn-white" id="btnEnter">Enter the Game</button>
+      <input type="text" id="playerName" placeholder="Choose a username" maxlength="24" />
+      <input type="email" id="playerEmail" placeholder="Email address" maxlength="120" />
+      <input type="password" id="playerPassword" placeholder="Password (6+ characters)" maxlength="120" />
+      <button class="btn-white" id="btnSignUp">Create Account</button>
+      <button class="btn-ghost" id="btnSignIn">Sign In</button>
+      <p id="authMessage" class="disclaimer" aria-live="polite"></p>
     </div>
     <p class="disclaimer">Deck content sourced from the open-source <a href="https://github.com/crhallberg/json-against-humanity" target="_blank" rel="noopener noreferrer">json-against-humanity</a> project (CC BY-NC-SA 4.0).</p>
   </div>
@@ -232,9 +236,9 @@
   </div>
 
   <!-- Firebase SDK from CDN -->
-  <script src="https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/11.0.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/11.0.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore-compat.js"></script>
   
   <!-- Initialize Firebase -->
   <script>
@@ -249,8 +253,12 @@
       measurementId: "G-BKBM2YLTVC"
     };
     
-    // Initialize Firebase
-    firebase.initializeApp(firebaseConfig);
+    // Initialize Firebase once and expose helpers for app.js usage.
+    if (!firebase.apps.length) {
+      firebase.initializeApp(firebaseConfig);
+    }
+    window.firebaseAuth = firebase.auth();
+    window.firebaseDb = firebase.firestore();
   </script>
   
   <script src="cards.js?v=14"></script>

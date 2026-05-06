@@ -4,9 +4,9 @@ const CACHE_NAME = 'cah-v14';
 const ASSETS = [
   './',
   './index.html',
-  './style.css?v=12',
-  './app.js?v=12',
-  './cards.js?v=12',
+  './style.css?v=14',
+  './app.js?v=14',
+  './cards.js?v=14',
   './manifest.json',
   './icons/bot-skeeter.svg',
   './icons/bot-sally.svg',

@@ -2,7 +2,10 @@
 
 /* ─── Storage helpers ─── */
 const load = (k, d) => { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch { return d; } };
-const save = (k, v) => localStorage.setItem(k, JSON.stringify(v));
+function save(k, v) {
+  localStorage.setItem(k, JSON.stringify(v));
+  if (k === 'cah_player') queueProfileSync(v);
+}
 
 /* ─── Economy rules ─── */
 const STARTER_COINS = 200;
@@ -28,6 +31,7 @@ let gameState = null;
 let deckCart = new Set();
 let deckCategoryCollapsed = {};
 let deckPreviewByCategory = {};
+let profileSyncTimer = null;
 
 const BOT_PERSONAS = [
   { key: 'skeeter', name: 'Skeeter', mode: 'spicy', avatar: 'icons/bot-skeeter.svg' },
@@ -44,6 +48,75 @@ function showScreen(id) {
 document.querySelectorAll('.btn-ghost.back').forEach(btn => {
   btn.addEventListener('click', () => showScreen(btn.dataset.target || 'menu'));
 });
+
+function setAuthMessage(text, isError = false) {
+  const el = document.getElementById('authMessage');
+  if (!el) return;
+  el.textContent = text || '';
+  el.style.color = isError ? '#ff8d8d' : '#9aa0a6';
+}
+
+function makeDefaultProfile(name, id, email = '') {
+  return {
+    id,
+    name,
+    email,
+    stats: { gamesPlayed: 0, gamesWon: 0, roundsWon: 0 },
+    economy: { coins: STARTER_COINS, tokens: STARTER_TOKENS },
+    deckProgress: {
+      ownedDeckIds: [],
+      activeDeckId: null,
+      freeStarterClaimed: false,
+      featuredSpecialClaimed: false
+    }
+  };
+}
+
+async function loadProfileFromCloud(user, fallbackName) {
+  const base = makeDefaultProfile(fallbackName || 'Player', user.uid, user.email || '');
+  if (!window.firebaseDb) return base;
+
+  const docRef = window.firebaseDb.collection('users').doc(user.uid);
+  const snap = await docRef.get();
+  if (!snap.exists) return base;
+
+  const data = snap.data() || {};
+  return {
+    ...base,
+    ...data,
+    id: user.uid,
+    name: String(data.username || data.name || fallbackName || 'Player'),
+    email: user.email || data.email || ''
+  };
+}
+
+async function syncProfileToCloud(profile) {
+  const user = window.firebaseAuth?.currentUser;
+  if (!user || !window.firebaseDb || !profile) return;
+
+  await window.firebaseDb.collection('users').doc(user.uid).set({
+    uid: user.uid,
+    email: user.email || profile.email || '',
+    username: profile.name || 'Player',
+    stats: profile.stats || { gamesPlayed: 0, gamesWon: 0, roundsWon: 0 },
+    economy: profile.economy || { coins: STARTER_COINS, tokens: STARTER_TOKENS },
+    deckProgress: profile.deckProgress || {
+      ownedDeckIds: [],
+      activeDeckId: null,
+      freeStarterClaimed: false,
+      featuredSpecialClaimed: false
+    },
+    updatedAt: Date.now()
+  }, { merge: true });
+}
+
+function queueProfileSync(profile) {
+  if (!window.firebaseAuth?.currentUser || !window.firebaseDb || !profile) return;
+  clearTimeout(profileSyncTimer);
+  profileSyncTimer = setTimeout(() => {
+    syncProfileToCloud(profile).catch(() => {});
+  }, 350);
+}
 
 /* ─── Profile / Economy ─── */
 function initPlayerProfile() {
@@ -448,18 +521,69 @@ function requireDeckAccess(message) {
 }
 
 /* ─── Landing / Login ─── */
-document.getElementById('btnEnter').addEventListener('click', () => {
-  const name = document.getElementById('playerName').value.trim();
-  if (!name) return alert('Please enter your name!');
-  me = load('cah_player', null);
-  if (!me || me.name !== name) {
-    me = { name, id: genId(), stats: { gamesPlayed: 0, gamesWon: 0, roundsWon: 0 } };
-  }
+async function handleAuthSuccess(user, fallbackName, successText) {
+  me = await loadProfileFromCloud(user, fallbackName);
   initPlayerProfile();
   save('cah_player', me);
   document.getElementById('greetName').textContent = me.name;
   showScreen('menu');
+  setAuthMessage(successText || 'Signed in successfully.');
+}
+
+async function handleSignUp() {
+  if (!window.firebaseAuth) return alert('Firebase auth is not available right now.');
+
+  const name = document.getElementById('playerName').value.trim();
+  const email = document.getElementById('playerEmail').value.trim();
+  const password = document.getElementById('playerPassword').value;
+  if (!name || !email || password.length < 6) {
+    return setAuthMessage('Enter a username, valid email, and a password with 6+ characters.', true);
+  }
+
+  setAuthMessage('Creating your account...');
+  try {
+    const cred = await window.firebaseAuth.createUserWithEmailAndPassword(email, password);
+    await syncProfileToCloud(makeDefaultProfile(name, cred.user.uid, email));
+    await handleAuthSuccess(cred.user, name, 'Account created. Welcome!');
+  } catch (err) {
+    setAuthMessage(err?.message || 'Sign-up failed.', true);
+  }
+}
+
+async function handleSignIn() {
+  if (!window.firebaseAuth) return alert('Firebase auth is not available right now.');
+
+  const email = document.getElementById('playerEmail').value.trim();
+  const password = document.getElementById('playerPassword').value;
+  const fallbackName = document.getElementById('playerName').value.trim() || 'Player';
+  if (!email || !password) return setAuthMessage('Enter email and password to sign in.', true);
+
+  setAuthMessage('Signing in...');
+  try {
+    const cred = await window.firebaseAuth.signInWithEmailAndPassword(email, password);
+    await handleAuthSuccess(cred.user, fallbackName, 'Signed in successfully.');
+  } catch (err) {
+    setAuthMessage(err?.message || 'Sign-in failed.', true);
+  }
+}
+
+document.getElementById('btnSignUp').addEventListener('click', handleSignUp);
+document.getElementById('btnSignIn').addEventListener('click', handleSignIn);
+document.getElementById('playerPassword').addEventListener('keydown', e => {
+  if (e.key === 'Enter') handleSignIn();
 });
+
+if (window.firebaseAuth) {
+  window.firebaseAuth.onAuthStateChanged(async user => {
+    if (!user) return;
+    try {
+      const fallbackName = document.getElementById('playerName').value.trim() || load('cah_player', null)?.name || 'Player';
+      await handleAuthSuccess(user, fallbackName, 'Session restored.');
+    } catch {
+      setAuthMessage('Signed in, but failed to load cloud profile.', true);
+    }
+  });
+}
 
 /* ─── Menu ─── */
 document.getElementById('btnCreateRoom').addEventListener('click', () => {

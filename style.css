@@ -56,7 +56,7 @@ body {
 .player-greeting { color: var(--white); }
 
 /* ── Buttons ── */
-input[type="text"], input[type="number"] {
+input[type="text"], input[type="number"], input[type="email"], input[type="password"] {
   background: #222;
   border: 1px solid var(--border);
   border-radius: 8px;
