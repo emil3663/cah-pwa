@@ -211,12 +211,12 @@ project (CC BY-NC-SA 4.0).
 | DE-21 | Preview action flow | Claim/equip/add-remove-cart actions work from selected preview panel | ⬜ |
 | DE-22 | Category coverage | Store contains 10 categories with 10 decks each | ⬜ |
 | DE-23 | NSFW category visibility | Dark and NSFW grouping is present and collapsible in store | ⬜ |
-| DE-24 | Custom pack import (line mode) | One-card-per-line input saves custom deck when >=20 cards | ⬜ |
+| DE-24 | Custom pack import (line mode) | One-card-per-line input saves custom deck when >=20 cards | ✅ |
 | DE-25 | Custom pack import (JSON array) | JSON string array input saves deck and equips it automatically | ⬜ |
 | DE-26 | Custom pack import (JSON object) | Object with name/description/whiteCards is parsed and saved | ⬜ |
 | DE-27 | Custom pack validation floor | Import with <20 cards is rejected with clear message | ⬜ |
-| DE-28 | Custom pack ownership persistence | Imported deck remains owned and selectable after reload | ⬜ |
-| DE-29 | Custom pack gameplay draw | Starting a game with custom deck yields cards from imported card list | ⬜ |
+| DE-28 | Custom pack ownership persistence | Imported deck remains owned and selectable after reload | ✅ |
+| DE-29 | Custom pack gameplay draw | Starting a game with custom deck yields cards from imported card list | ✅ |
 | DE-30 | Custom pack delete | Deleting custom deck removes ownership and falls back active deck to starter if needed | ⬜ |
 
 ### 3.10 Room NSFW Toggle
