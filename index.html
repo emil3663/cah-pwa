@@ -8,7 +8,7 @@
   <link rel="manifest" href="manifest.json" />
   <meta name="theme-color" content="#111111" />
   <link rel="apple-touch-icon" href="icons/icon-192.png" />
-  <link rel="stylesheet" href="style.css?v=13" />
+  <link rel="stylesheet" href="style.css?v=14" />
 </head>
 <body>
 
@@ -231,8 +231,30 @@
     </div>
   </div>
 
-  <script src="cards.js?v=13"></script>
-  <script src="app.js?v=13"></script>
+  <!-- Firebase SDK from CDN -->
+  <script src="https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js"></script>
+  
+  <!-- Initialize Firebase -->
+  <script>
+    // Your Firebase configuration
+    const firebaseConfig = {
+      apiKey: "AIzaSyCqRFSNJn70ksmr8GrdfDzY2IpdPMhBi5o",
+      authDomain: "cah-pwa-fedc0.firebaseapp.com",
+      projectId: "cah-pwa-fedc0",
+      storageBucket: "cah-pwa-fedc0.firebasestorage.app",
+      messagingSenderId: "774330948355",
+      appId: "1:774330948355:web:d3c527c0d4e3289ecea736",
+      measurementId: "G-BKBM2YLTVC"
+    };
+    
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+  </script>
+  
+  <script src="cards.js?v=14"></script>
+  <script src="app.js?v=14"></script>
   <script>
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('service-worker.js').catch(() => {});
