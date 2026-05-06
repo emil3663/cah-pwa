@@ -173,6 +173,7 @@ project (CC BY-NC-SA 4.0).
 | GO-10 | High-AI token block | With 2+ AI, no end-game tokens are awarded | ⬜ |
 | GO-11 | Single-human endgame | No end-game rewards if <2 humans at game end | ⬜ |
 | GO-12 | Mid-game quit payout | Only previously earned round coins are retained | ⬜ |
+| GO-13 | Rounds-to-win from room setup | Setting rounds-to-win to 3 ends match immediately when a player reaches 3 points | ⬜ |
 
 ### 3.8 AI Player Regression Coverage
 

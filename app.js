@@ -1355,14 +1355,14 @@ document.getElementById('btnStartRoom').addEventListener('click', async () => {
   const isNameConflict = suggestedName !== me.name;
 
   if (isNameConflict) {
-    pendingCreateRoomData = { roomName, gameMode, allowNsfw, maxPlayers, code, botPlayers, botNames };
+    pendingCreateRoomData = { roomName, gameMode, allowNsfw, maxPlayers, roundsToWin, code, botPlayers, botNames };
     showNameConfirmModal('Create Room', `Your name "${me.name}" conflicts with an AI player. Suggest: "${suggestedName}"`, suggestedName);
   } else {
-    await finishCreateRoom(roomName, gameMode, allowNsfw, maxPlayers, code, me.name, botPlayers);
+    await finishCreateRoom(roomName, gameMode, allowNsfw, maxPlayers, roundsToWin, code, me.name, botPlayers);
   }
 });
 
-async function finishCreateRoom(roomName, gameMode, allowNsfw, maxPlayers, code, displayName, botPlayers) {
+async function finishCreateRoom(roomName, gameMode, allowNsfw, maxPlayers, roundsToWin, code, displayName, botPlayers) {
   const humanPlayer = { id: me.id, name: me.name, displayName, score: 0, isBot: false };
   const room = {
     code,
@@ -1370,6 +1370,7 @@ async function finishCreateRoom(roomName, gameMode, allowNsfw, maxPlayers, code,
     mode: gameMode,
     allowNsfw,
     maxPlayers,
+    roundsToWin,
     host: me.id,
     players: [humanPlayer, ...botPlayers],
     status: 'lobby',
@@ -1491,8 +1492,8 @@ document.getElementById('btnConfirmName').addEventListener('click', async () => 
   if (!displayName) return alert('Please enter a name.');
 
   if (pendingCreateRoomData) {
-    const { roomName, gameMode, allowNsfw, maxPlayers, code, botPlayers } = pendingCreateRoomData;
-    await finishCreateRoom(roomName, gameMode, allowNsfw, maxPlayers, code, displayName, botPlayers);
+    const { roomName, gameMode, allowNsfw, maxPlayers, roundsToWin, code, botPlayers } = pendingCreateRoomData;
+    await finishCreateRoom(roomName, gameMode, allowNsfw, maxPlayers, roundsToWin, code, displayName, botPlayers);
   } else if (pendingJoinRoomCode) {
     await finishJoinRoom(pendingJoinRoomCode, displayName);
   }
@@ -1861,7 +1862,8 @@ function resolveRound(winnerId, fromServer = false) {
 
   showScreen('result');
 
-  if ((gameState.scores[winnerId] || 0) >= gameState.room.roundsToWin) {
+  const targetRounds = Number(gameState.room.roundsToWin) || 7;
+  if ((gameState.scores[winnerId] || 0) >= targetRounds) {
     document.getElementById('btnNextRound').style.display = 'none';
     setTimeout(() => showGameOver(winner, praise), 2000);
   } else {
