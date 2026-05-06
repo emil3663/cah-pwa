@@ -76,6 +76,9 @@ project (CC BY-NC-SA 4.0).
 | LG-08 | Firestore profile sync after stats/economy changes | Cloud profile reflects latest local changes | ⬜ |
 | LG-09 | Top bar auth state after sign-in | Menu shows "Signed in as <email>" | ⬜ |
 | LG-10 | Sign Out button behavior | User returns to landing and auth state resets | ⬜ |
+| LG-11 | Invalid email format on sign-in/up | Inline validation error shown before Firebase request | ⬜ |
+| LG-12 | Reset password flow | Reset email is sent for valid registered email | ⬜ |
+| LG-13 | Unverified account sign-in note | Success message indicates email is not yet verified | ⬜ |
 
 ### 3.2 Room Management
 

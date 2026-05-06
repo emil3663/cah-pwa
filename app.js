@@ -32,6 +32,7 @@ let deckCart = new Set();
 let deckCategoryCollapsed = {};
 let deckPreviewByCategory = {};
 let profileSyncTimer = null;
+let authBusy = false;
 
 const BOT_PERSONAS = [
   { key: 'skeeter', name: 'Skeeter', mode: 'spicy', avatar: 'icons/bot-skeeter.svg' },
@@ -54,6 +55,31 @@ function setAuthMessage(text, isError = false) {
   if (!el) return;
   el.textContent = text || '';
   el.style.color = isError ? '#ff8d8d' : '#9aa0a6';
+}
+
+function setAuthLoading(isBusy) {
+  authBusy = isBusy;
+  const ids = ['btnSignUp', 'btnSignIn', 'btnResetPassword'];
+  ids.forEach(id => {
+    const btn = document.getElementById(id);
+    if (btn) btn.disabled = isBusy;
+  });
+}
+
+function isValidEmail(email) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email || '').trim());
+}
+
+function mapAuthError(err) {
+  const code = String(err?.code || '');
+  if (code.includes('api-key-not-valid')) return 'Firebase API key is blocked for this domain. Add this origin in Firebase app settings or use the deployed site URL.';
+  if (code.includes('invalid-email')) return 'Please enter a valid email address.';
+  if (code.includes('email-already-in-use')) return 'That email is already registered. Try signing in.';
+  if (code.includes('weak-password')) return 'Password must be at least 6 characters.';
+  if (code.includes('user-not-found')) return 'No account found for that email.';
+  if (code.includes('wrong-password') || code.includes('invalid-credential')) return 'Incorrect email or password.';
+  if (code.includes('too-many-requests')) return 'Too many attempts. Please wait and try again.';
+  return err?.message || 'Authentication request failed.';
 }
 
 function updateAuthTopbar(user) {
@@ -568,43 +594,73 @@ async function handleSignOut() {
 
 async function handleSignUp() {
   if (!window.firebaseAuth) return alert('Firebase auth is not available right now.');
+  if (authBusy) return;
 
   const name = document.getElementById('playerName').value.trim();
   const email = document.getElementById('playerEmail').value.trim();
   const password = document.getElementById('playerPassword').value;
-  if (!name || !email || password.length < 6) {
+  if (!name || !isValidEmail(email) || password.length < 6) {
     return setAuthMessage('Enter a username, valid email, and a password with 6+ characters.', true);
   }
 
+  setAuthLoading(true);
   setAuthMessage('Creating your account...');
   try {
     const cred = await window.firebaseAuth.createUserWithEmailAndPassword(email, password);
+    await cred.user.sendEmailVerification().catch(() => {});
     await syncProfileToCloud(makeDefaultProfile(name, cred.user.uid, email));
-    await handleAuthSuccess(cred.user, name, 'Account created. Welcome!');
+    await handleAuthSuccess(cred.user, name, 'Account created. Verification email sent.');
   } catch (err) {
-    setAuthMessage(err?.message || 'Sign-up failed.', true);
+    setAuthMessage(mapAuthError(err), true);
+  } finally {
+    setAuthLoading(false);
   }
 }
 
 async function handleSignIn() {
   if (!window.firebaseAuth) return alert('Firebase auth is not available right now.');
+  if (authBusy) return;
 
   const email = document.getElementById('playerEmail').value.trim();
   const password = document.getElementById('playerPassword').value;
   const fallbackName = document.getElementById('playerName').value.trim() || 'Player';
-  if (!email || !password) return setAuthMessage('Enter email and password to sign in.', true);
+  if (!isValidEmail(email) || !password) return setAuthMessage('Enter a valid email and password to sign in.', true);
 
+  setAuthLoading(true);
   setAuthMessage('Signing in...');
   try {
     const cred = await window.firebaseAuth.signInWithEmailAndPassword(email, password);
-    await handleAuthSuccess(cred.user, fallbackName, 'Signed in successfully.');
+    const verifiedNote = cred.user.emailVerified ? '' : ' Email not verified yet.';
+    await handleAuthSuccess(cred.user, fallbackName, `Signed in successfully.${verifiedNote}`);
   } catch (err) {
-    setAuthMessage(err?.message || 'Sign-in failed.', true);
+    setAuthMessage(mapAuthError(err), true);
+  } finally {
+    setAuthLoading(false);
+  }
+}
+
+async function handleResetPassword() {
+  if (!window.firebaseAuth) return alert('Firebase auth is not available right now.');
+  if (authBusy) return;
+
+  const email = document.getElementById('playerEmail').value.trim();
+  if (!isValidEmail(email)) return setAuthMessage('Enter a valid email first, then click Reset Password.', true);
+
+  setAuthLoading(true);
+  setAuthMessage('Sending password reset email...');
+  try {
+    await window.firebaseAuth.sendPasswordResetEmail(email);
+    setAuthMessage('Password reset email sent. Check your inbox.');
+  } catch (err) {
+    setAuthMessage(mapAuthError(err), true);
+  } finally {
+    setAuthLoading(false);
   }
 }
 
 document.getElementById('btnSignUp').addEventListener('click', handleSignUp);
 document.getElementById('btnSignIn').addEventListener('click', handleSignIn);
+document.getElementById('btnResetPassword').addEventListener('click', handleResetPassword);
 document.getElementById('btnSignOut').addEventListener('click', handleSignOut);
 document.getElementById('playerPassword').addEventListener('keydown', e => {
   if (e.key === 'Enter') handleSignIn();
