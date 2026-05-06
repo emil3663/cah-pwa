@@ -317,3 +317,52 @@ project (CC BY-NC-SA 4.0).
 | `game-mode` | teal | Game mode variations |
 | `good first issue` | light-green | Easy entry point |
 | `blocked` | grey | Waiting on backend |
+
+---
+
+## 7. Next-Session Smoke Pack
+
+Use this mini-suite at the start of each new work session before implementing new changes.
+
+### 7.1 Session Header
+
+| Field | Value |
+|-------|-------|
+| Date | |
+| Tester | |
+| Build / Commit | |
+| URL under test | |
+| Browser | |
+| Service worker version | |
+
+### 7.2 Quick Run Checklist (10-15 min)
+
+| ID | Step | Expected Result | Pass/Fail | Notes |
+|----|------|-----------------|-----------|-------|
+| QS-01 | Open app with cache-bust query param | Latest JS/CSS loads (no stale UI) | | |
+| QS-02 | Sign in with test account | Lands on menu with profile loaded | | |
+| QS-03 | Open Deck Store | Deck categories render without runtime errors | | |
+| QS-04 | Import custom pack via line mode (>=20 lines) | Deck is created and auto-equipped | | |
+| QS-05 | Reload app | Custom deck remains owned and active | | |
+| QS-06 | Create room (1 AI, rounds=3) and start game | Lobby and game open successfully | | |
+| QS-07 | Advance to round 2 | Hand contains imported custom pack cards | | |
+| QS-08 | Send one chat message in-game | Message appears and sync UI updates | | |
+| QS-09 | Finish game quickly | Game over appears and stats update | | |
+| QS-10 | Open stats screen | Recent Games includes latest completed match | | |
+
+### 7.3 Exit Criteria
+
+| Outcome | Rule |
+|---------|------|
+| Green | QS-01..QS-10 all pass |
+| Yellow | 1 failure with workaround documented |
+| Red | 2+ failures or blocking regression |
+
+### 7.4 If Any Smoke Step Fails
+
+| Action | Requirement |
+|--------|-------------|
+| Capture context | Record URL, commit, browser, exact step ID |
+| Capture evidence | Console error or screenshot + short repro |
+| Triage | Mark as `bug` and assign severity (P0/P1/P2) |
+| Gate | Do not start new feature work until P0/P1 smoke failures are fixed |
