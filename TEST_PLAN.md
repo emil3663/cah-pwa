@@ -74,6 +74,8 @@ project (CC BY-NC-SA 4.0).
 | LG-06 | Username max length | Username input caps at 24 characters | ⬜ |
 | LG-07 | Firestore profile write on first signup | users/{uid} doc created with username/stats/economy/deckProgress | ⬜ |
 | LG-08 | Firestore profile sync after stats/economy changes | Cloud profile reflects latest local changes | ⬜ |
+| LG-09 | Top bar auth state after sign-in | Menu shows "Signed in as <email>" | ⬜ |
+| LG-10 | Sign Out button behavior | User returns to landing and auth state resets | ⬜ |
 
 ### 3.2 Room Management
 

@@ -56,6 +56,20 @@ function setAuthMessage(text, isError = false) {
   el.style.color = isError ? '#ff8d8d' : '#9aa0a6';
 }
 
+function updateAuthTopbar(user) {
+  const authState = document.getElementById('authStateText');
+  const signOutBtn = document.getElementById('btnSignOut');
+  if (!authState || !signOutBtn) return;
+
+  if (user) {
+    authState.textContent = `Signed in as ${user.email || me?.name || 'Player'}`;
+    signOutBtn.disabled = false;
+  } else {
+    authState.textContent = 'Not signed in';
+    signOutBtn.disabled = true;
+  }
+}
+
 function makeDefaultProfile(name, id, email = '') {
   return {
     id,
@@ -526,8 +540,30 @@ async function handleAuthSuccess(user, fallbackName, successText) {
   initPlayerProfile();
   save('cah_player', me);
   document.getElementById('greetName').textContent = me.name;
+  updateAuthTopbar(user);
   showScreen('menu');
   setAuthMessage(successText || 'Signed in successfully.');
+}
+
+async function handleSignOut() {
+  if (!window.firebaseAuth?.currentUser) {
+    updateAuthTopbar(null);
+    showScreen('landing');
+    return;
+  }
+
+  setAuthMessage('Signing out...');
+  try {
+    await window.firebaseAuth.signOut();
+    me = null;
+    localStorage.removeItem('cah_player');
+    document.getElementById('greetName').textContent = '';
+    updateAuthTopbar(null);
+    showScreen('landing');
+    setAuthMessage('Signed out.');
+  } catch (err) {
+    setAuthMessage(err?.message || 'Sign-out failed.', true);
+  }
 }
 
 async function handleSignUp() {
@@ -569,13 +605,19 @@ async function handleSignIn() {
 
 document.getElementById('btnSignUp').addEventListener('click', handleSignUp);
 document.getElementById('btnSignIn').addEventListener('click', handleSignIn);
+document.getElementById('btnSignOut').addEventListener('click', handleSignOut);
 document.getElementById('playerPassword').addEventListener('keydown', e => {
   if (e.key === 'Enter') handleSignIn();
 });
 
+updateAuthTopbar(window.firebaseAuth?.currentUser || null);
+
 if (window.firebaseAuth) {
   window.firebaseAuth.onAuthStateChanged(async user => {
-    if (!user) return;
+    if (!user) {
+      updateAuthTopbar(null);
+      return;
+    }
     try {
       const fallbackName = document.getElementById('playerName').value.trim() || load('cah_player', null)?.name || 'Player';
       await handleAuthSuccess(user, fallbackName, 'Session restored.');
