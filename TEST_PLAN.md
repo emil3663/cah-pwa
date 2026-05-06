@@ -108,7 +108,22 @@ project (CC BY-NC-SA 4.0).
 | GC-06 | Next-round host gate | Non-host pressing Next Round is a no-op; host advances all | ⬜ |
 | GC-07 | Bot fallback solo play | Solo game with bots works unchanged without Firestore sync | ⬜ |
 
-### 3.3 Game Modes
+### 3.3 In-Game Chat (Phase D)
+
+| ID | Test | Expected Result | Status |
+|----|------|-----------------|--------|
+| CH-01 | Chat send lobby | Authenticated player types and sends a message in lobby chat; message appears for all room members | ⬜ |
+| CH-02 | Chat send in-game | Player sends chat during game screen; message visible in collapsible chat panel | ⬜ |
+| CH-03 | Chat send result screen | Player sends chat on result screen; message synced | ⬜ |
+| CH-04 | Real-time delivery | Message sent by Player A appears on Player B's screen without refresh | ⬜ |
+| CH-05 | Max message length | Message longer than 200 chars is truncated to 200 before sending | ⬜ |
+| CH-06 | Spam throttle | Sending two messages within 1500 ms — second is silently dropped | ⬜ |
+| CH-07 | Message history limit | After 50+ messages, oldest are evicted; last 50 retained | ⬜ |
+| CH-08 | XSS sanitisation | Message containing `<script>alert(1)</script>` is escaped and displays as plain text | ⬜ |
+| CH-09 | Chat cleared on room leave | Leaving the room stops listener; stale messages not shown on re-enter | ⬜ |
+| CH-10 | Unauthenticated blocked | Firestore rejects write from unauthenticated client (rules test) | ⬜ |
+
+### 3.4 Game Modes
 
 | ID | Test | Expected Result | Status |
 |----|------|-----------------|--------|

@@ -45,6 +45,9 @@ const BOT_PERSONAS = [
 
 /* ─── Screen management ─── */
 function showScreen(id) {
+  const keepChatScreens = ['lobby', 'game', 'result'];
+  if (!keepChatScreens.includes(id)) stopChatSubscription();
+
   const keepListenerScreens = ['lobby', 'game', 'result', 'gameover'];
   if (!keepListenerScreens.includes(id) && unsubscribeRoomListener) {
     unsubscribeRoomListener();
@@ -490,6 +493,112 @@ function startGameFromServer(data) {
   }
 
   renderGameScreen();
+}
+
+/* ─── Phase D: In-Game Chat ─── */
+
+const CHAT_MAX_LENGTH = 200;
+const CHAT_MAX_MSGS = 50;        // messages retained per room
+const CHAT_THROTTLE_MS = 1500;   // minimum ms between sends per client
+let chatLastSent = 0;
+let unsubscribeChatListener = null;
+const CHAT_SCREENS = ['lobby', 'game', 'result'];
+
+// Message mirror rendered in every visible chat panel simultaneously.
+const CHAT_PANEL_IDS = {
+  lobby:  { messages: 'chatMessagesLobby',  input: 'chatInputLobby',  btn: 'btnChatSendLobby'  },
+  game:   { messages: 'chatMessagesGame',   input: 'chatInputGame',   btn: 'btnChatSendGame'   },
+  result: { messages: 'chatMessagesResult', input: 'chatInputResult', btn: 'btnChatSendResult' }
+};
+
+function chatDocRef(roomCode) {
+  return window.firebaseDb.collection('chats').doc(String(roomCode || '').toUpperCase());
+}
+
+function sanitizeChatText(raw) {
+  return String(raw || '').trim().slice(0, CHAT_MAX_LENGTH);
+}
+
+async function sendChatMessage(roomCode, text) {
+  const clean = sanitizeChatText(text);
+  if (!clean) return;
+
+  const now = Date.now();
+  if (now - chatLastSent < CHAT_THROTTLE_MS) return;
+  chatLastSent = now;
+
+  const msg = {
+    id: genId(),
+    uid: me?.id || 'anon',
+    name: me?.name || 'Player',
+    text: clean,
+    at: now
+  };
+
+  const ref = chatDocRef(roomCode);
+  return window.firebaseDb.runTransaction(async tx => {
+    const snap = await tx.get(ref);
+    const msgs = snap.exists ? (snap.data().messages || []) : [];
+    const trimmed = [...msgs, msg].slice(-CHAT_MAX_MSGS);
+    tx.set(ref, { messages: trimmed, updatedAt: now }, { merge: false });
+  });
+}
+
+function subscribeChatRoom(roomCode) {
+  if (!useFirestoreRoomSync()) return;
+  if (unsubscribeChatListener) {
+    unsubscribeChatListener();
+    unsubscribeChatListener = null;
+  }
+
+  unsubscribeChatListener = chatDocRef(roomCode).onSnapshot(snap => {
+    if (!snap.exists) return;
+    renderChatMessages(snap.data().messages || []);
+  });
+}
+
+function stopChatSubscription() {
+  if (unsubscribeChatListener) {
+    unsubscribeChatListener();
+    unsubscribeChatListener = null;
+  }
+}
+
+function renderChatMessages(msgs) {
+  const myId = me?.id;
+  const html = msgs.map(m => {
+    const isMine = m.uid === myId;
+    return `<div class="chat-msg${isMine ? ' chat-msg-mine' : ''}">
+      <span class="chat-name">${escHtml(m.name)}</span>
+      <span class="chat-text">${escHtml(m.text)}</span>
+    </div>`;
+  }).join('');
+
+  Object.values(CHAT_PANEL_IDS).forEach(({ messages }) => {
+    const el = document.getElementById(messages);
+    if (!el) return;
+    el.innerHTML = html;
+    el.scrollTop = el.scrollHeight;
+  });
+}
+
+function initChatHandlers() {
+  Object.entries(CHAT_PANEL_IDS).forEach(([, ids]) => {
+    const input = document.getElementById(ids.input);
+    const btn   = document.getElementById(ids.btn);
+    if (!btn || !input) return;
+
+    btn.addEventListener('click', () => {
+      const text = input.value.trim();
+      if (!text || !currentRoom?.code) return;
+      input.value = '';
+      sendChatMessage(currentRoom.code, text).catch(() => {});
+    });
+
+    input.addEventListener('keydown', e => {
+      if (e.key === 'Enter') btn.click();
+    });
+  });
 }
 
 /* ─── Profile / Economy ─── */
@@ -1226,7 +1335,10 @@ function openLobby(room) {
   renderLobbyMeta(room);
   showScreen('lobby');
   refreshLobbyPlayers(room);
-  if (useFirestoreRoomSync()) subscribeActiveRoom(room.code);
+  if (useFirestoreRoomSync()) {
+    subscribeActiveRoom(room.code);
+    subscribeChatRoom(room.code);
+  }
 }
 
 function refreshLobbyPlayers(room) {
@@ -1802,7 +1914,11 @@ function showGameOver(winner, praise) {
 }
 
 function leaveGameToMenu() {
+  stopChatSubscription();
+  stopRoomSubscriptions();
   gameState = null;
+  isGameHost = false;
+  currentRoom = null;
   showScreen('menu');
 }
 
@@ -1880,3 +1996,6 @@ function escHtml(str) {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;');
 }
+
+// ── Init ──
+initChatHandlers();

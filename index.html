@@ -8,7 +8,7 @@
   <link rel="manifest" href="manifest.json" />
   <meta name="theme-color" content="#111111" />
   <link rel="apple-touch-icon" href="icons/icon-192.png" />
-  <link rel="stylesheet" href="style.css?v=15" />
+  <link rel="stylesheet" href="style.css?v=16" />
 </head>
 <body>
 
@@ -162,6 +162,13 @@
       <div id="lobbyPlayers" class="player-chips"></div>
       <button class="btn-white" id="btnStartGame" style="margin-top:28px;">▶ Start Game</button>
     </div>
+    <div class="chat-panel" id="chatPanelLobby">
+      <div class="chat-messages" id="chatMessagesLobby"></div>
+      <div class="chat-input-row">
+        <input type="text" id="chatInputLobby" placeholder="Chat…" maxlength="200" autocomplete="off" />
+        <button class="btn-ghost" id="btnChatSendLobby">Send</button>
+      </div>
+    </div>
   </div>
 
   <!-- ═══ SCREEN: Game ═══ -->
@@ -197,6 +204,18 @@
       <p class="hand-label">Choose the best answer:</p>
       <div id="submittedCards" class="submitted-cards"></div>
     </div>
+
+    <!-- In-game chat -->
+    <div class="chat-panel" id="chatPanelGame">
+      <details class="chat-collapsible">
+        <summary>💬 Chat</summary>
+        <div class="chat-messages" id="chatMessagesGame"></div>
+        <div class="chat-input-row">
+          <input type="text" id="chatInputGame" placeholder="Chat…" maxlength="200" autocomplete="off" />
+          <button class="btn-ghost" id="btnChatSendGame">Send</button>
+        </div>
+      </details>
+    </div>
   </div>
 
   <!-- ═══ SCREEN: Round Result ═══ -->
@@ -210,6 +229,16 @@
       <div id="roundPraise" class="gameover-praise" style="margin:0 0 8px;"></div>
       <div id="scoreBoard" class="scoreboard"></div>
       <button class="btn-white" id="btnNextRound">Next Round →</button>
+    </div>
+    <div class="chat-panel" id="chatPanelResult">
+      <details class="chat-collapsible">
+        <summary>💬 Chat</summary>
+        <div class="chat-messages" id="chatMessagesResult"></div>
+        <div class="chat-input-row">
+          <input type="text" id="chatInputResult" placeholder="Chat…" maxlength="200" autocomplete="off" />
+          <button class="btn-ghost" id="btnChatSendResult">Send</button>
+        </div>
+      </details>
     </div>
   </div>
 
@@ -266,8 +295,8 @@
     window.firebaseDb = firebase.firestore();
   </script>
   
-  <script src="cards.js?v=15"></script>
-  <script src="app.js?v=15"></script>
+  <script src="cards.js?v=16"></script>
+  <script src="app.js?v=16"></script>
   <script>
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('service-worker.js').catch(() => {});

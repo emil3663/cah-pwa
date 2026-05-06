@@ -19,9 +19,9 @@ Track the remaining long-term roadmap items as concrete phases so the team can e
 - [x] Keep bot simulation as fallback for solo/local testing.
 
 ## Phase D: In-Game Chat
-- [ ] Add room-scoped chat channel.
-- [ ] Persist latest messages per room.
-- [ ] Basic moderation guardrails (length, spam throttling).
+- [x] Add room-scoped chat channel.
+- [x] Persist latest messages per room.
+- [x] Basic moderation guardrails (length, spam throttling).
 
 ## Phase E: Custom Packs + History
 - [ ] Add custom deck creation/import flow.
