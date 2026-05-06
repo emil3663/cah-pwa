@@ -806,6 +806,9 @@ function renderDeckPreviewCard(deck, category) {
   const owned = ownsDeck(deck.id);
   const selected = me.deckProgress.activeDeckId === deck.id;
   const isCustom = deck.categoryId === CUSTOM_DECK_CATEGORY_ID;
+  const cardCount = Array.isArray(deck.whiteCards)
+    ? deck.whiteCards.length
+    : ((deck.whiteCardIndexes || []).length);
   const tokenCost = getDeckTokenCost(deck);
   const coinCost = getDeckCoinCost(deck);
   const isFreeStarterClaim = !isAdminUser() && !me.deckProgress.freeStarterClaimed && deck.id === FREE_STARTER_DECK_ID;
@@ -834,7 +837,7 @@ function renderDeckPreviewCard(deck, category) {
         <p class="deck-description">${escHtml(deck.description || 'No description available.')}</p>
         <div class="deck-meta">
           <span>${deck.family === 'special' ? 'Special' : 'General'} Tier ${deck.tier}</span>
-          <span>${deck.whiteCardIndexes.length} white cards</span>
+          <span>${cardCount} white cards</span>
           ${category ? `<span>${escHtml(category.name)}</span>` : ''}
           ${deck.sourcePackName ? `<span>Source: ${escHtml(deck.sourcePackName)}</span>` : ''}
         </div>
