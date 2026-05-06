@@ -35,6 +35,7 @@ let profileSyncTimer = null;
 let authBusy = false;
 let unsubscribeRoomListener = null;
 let unsubscribeRoomListListener = null;
+let isGameHost = false;
 
 const BOT_PERSONAS = [
   { key: 'skeeter', name: 'Skeeter', mode: 'spicy', avatar: 'icons/bot-skeeter.svg' },
@@ -44,7 +45,8 @@ const BOT_PERSONAS = [
 
 /* ─── Screen management ─── */
 function showScreen(id) {
-  if (id !== 'lobby' && unsubscribeRoomListener) {
+  const keepListenerScreens = ['lobby', 'game', 'result', 'gameover'];
+  if (!keepListenerScreens.includes(id) && unsubscribeRoomListener) {
     unsubscribeRoomListener();
     unsubscribeRoomListener = null;
   }
@@ -322,16 +324,172 @@ function subscribeOpenRooms() {
     });
 }
 
-function subscribeLobbyRoom(code) {
+function subscribeActiveRoom(code) {
   if (!useFirestoreRoomSync()) return;
   if (unsubscribeRoomListener) unsubscribeRoomListener();
 
   unsubscribeRoomListener = roomDocRef(code).onSnapshot(snap => {
     if (!snap.exists) return;
-    currentRoom = snap.data();
-    renderLobbyMeta(currentRoom);
-    refreshLobbyPlayers(currentRoom);
+    const data = snap.data();
+    currentRoom = data;
+
+    if (data.status === 'lobby') {
+      renderLobbyMeta(data);
+      refreshLobbyPlayers(data);
+      return;
+    }
+
+    // Non-host clients receive the game-started signal and bootstrap locally.
+    if (data.status === 'playing' && !gameState && !isGameHost) {
+      startGameFromServer(data);
+      return;
+    }
+
+    if (!gameState) return;
+
+    if (data.gamePhase === 'picking') {
+      if ((data.roundNum || 1) > gameState.round) {
+        applyRoundFromServer(data);
+      } else {
+        applySubmissionsFromServer(data.submissions);
+      }
+    } else if (data.gamePhase === 'result' && gameState.phase !== 'result') {
+      applyResultFromServer(data);
+    }
   });
+}
+
+/* ─── Phase C: Game state sync helpers ─── */
+
+function useFirestoreGameSync() {
+  return useFirestoreRoomSync() && Boolean(currentRoom) &&
+    (currentRoom.players || []).filter(p => !p.isBot).length >= 2;
+}
+
+async function pushRoundToBackend(code) {
+  if (!useFirestoreGameSync() || !gameState) return;
+  await roomDocRef(code).set({
+    gamePhase: 'picking',
+    roundNum: gameState.round,
+    czarIndex: gameState.czarIndex,
+    currentBlack: {
+      text: gameState.currentBlack.text,
+      pick: gameState.currentBlack.pick,
+      id: gameState.currentBlack.id
+    },
+    submissions: {},
+    scores: { ...gameState.scores },
+    updatedAt: Date.now()
+  }, { merge: true });
+}
+
+async function pushSubmissionToBackend(code, playerId, texts) {
+  if (!useFirestoreGameSync()) return;
+  const ref = roomDocRef(code);
+  return window.firebaseDb.runTransaction(async tx => {
+    const snap = await tx.get(ref);
+    if (!snap.exists) return;
+    if ((snap.data().submissions || {})[playerId]) return; // dedup
+    tx.update(ref, {
+      [`submissions.${playerId}`]: { texts, at: Date.now() },
+      updatedAt: Date.now()
+    });
+  });
+}
+
+async function pushResultToBackend(code, winnerId, scores) {
+  if (!useFirestoreGameSync()) return;
+  await roomDocRef(code).set({
+    gamePhase: 'result',
+    lastWinnerId: winnerId,
+    scores: { ...scores },
+    updatedAt: Date.now()
+  }, { merge: true });
+}
+
+function getSubmissionTexts(playerId) {
+  if (gameState.submissionTexts?.[playerId]) return gameState.submissionTexts[playerId];
+  return (gameState.submissions[playerId] || []).map(id => gameState.cardTextById[id] || '');
+}
+
+function applyRoundFromServer(data) {
+  if (!gameState || !data.currentBlack) return;
+  gameState.round = data.roundNum;
+  gameState.czarIndex = data.czarIndex;
+  gameState.scores = { ...(data.scores || {}) };
+  gameState.submissions = {};
+  gameState.submissionTexts = {};
+  gameState.currentBlack = data.currentBlack;
+  gameState.phase = 'playing';
+  // Replenish hand for this client.
+  const hand = gameState.hands[me.id] || [];
+  while (hand.length < 10) hand.push(drawCardForPlayer(me.id));
+  gameState.hands[me.id] = hand;
+  renderGameScreen();
+}
+
+function applySubmissionsFromServer(serverSubs) {
+  if (!gameState || !serverSubs) return;
+  gameState.submissionTexts = gameState.submissionTexts || {};
+  let changed = false;
+  Object.entries(serverSubs).forEach(([pid, sub]) => {
+    if (!gameState.submissionTexts[pid]) {
+      gameState.submissionTexts[pid] = sub.texts || [];
+      changed = true;
+    }
+  });
+  if (!changed) return;
+  if (getCzar().id === me.id) renderSubmissions();
+}
+
+function applyResultFromServer(data) {
+  if (!gameState || gameState.phase === 'result') return;
+  gameState.phase = 'result';
+  if (data.lastWinnerId) resolveRound(data.lastWinnerId, true);
+}
+
+function startGameFromServer(data) {
+  gameState = {
+    room: data,
+    blackDeck: [],
+    hands: {},
+    czarIndex: data.czarIndex || 0,
+    round: data.roundNum || 1,
+    scores: { ...(data.scores || {}) },
+    submissions: {},
+    submissionTexts: {},
+    phase: 'playing',
+    currentBlack: data.currentBlack || null,
+    mode: data.mode,
+    cardCounter: 1,
+    cardTextById: {},
+    playerDecks: {},
+    drawPiles: {},
+    rerollsRoundUsed: {},
+    rerollsGameUsed: {}
+  };
+
+  (data.players || []).forEach(p => {
+    gameState.scores[p.id] = gameState.scores[p.id] || 0;
+    gameState.rerollsRoundUsed[p.id] = 0;
+    gameState.rerollsGameUsed[p.id] = 0;
+    const deckId = p.isBot
+      ? chooseDeckForBot(p, data.allowNsfw !== false)
+      : (me.deckProgress.activeDeckId || FREE_STARTER_DECK_ID);
+    gameState.playerDecks[p.id] = deckId;
+    gameState.drawPiles[p.id] = createDeckPile(deckId);
+    gameState.hands[p.id] = [];
+    while (gameState.hands[p.id].length < 10) gameState.hands[p.id].push(drawCardForPlayer(p.id));
+  });
+
+  if (data.submissions) {
+    gameState.submissionTexts = {};
+    Object.entries(data.submissions).forEach(([pid, sub]) => {
+      gameState.submissionTexts[pid] = sub.texts || [];
+    });
+  }
+
+  renderGameScreen();
 }
 
 /* ─── Profile / Economy ─── */
@@ -1068,7 +1226,7 @@ function openLobby(room) {
   renderLobbyMeta(room);
   showScreen('lobby');
   refreshLobbyPlayers(room);
-  if (useFirestoreRoomSync()) subscribeLobbyRoom(room.code);
+  if (useFirestoreRoomSync()) subscribeActiveRoom(room.code);
 }
 
 function refreshLobbyPlayers(room) {
@@ -1092,6 +1250,7 @@ document.getElementById('btnStartGame').addEventListener('click', async () => {
   }
 
   currentRoom.status = 'playing';
+  isGameHost = true;
   if (useFirestoreRoomSync()) {
     await setRoomBackend(currentRoom);
   } else {
@@ -1125,6 +1284,7 @@ function startGame(room) {
     round: 1,
     scores: {},
     submissions: {},
+    submissionTexts: {},
     phase: 'playing',
     currentBlack: null,
     mode: room.mode,
@@ -1192,6 +1352,7 @@ function chooseDeckForBot(bot, allowNsfw = true) {
 
 function startRound() {
   gameState.submissions = {};
+  gameState.submissionTexts = {};
   gameState.phase = 'playing';
   gameState.rerollsRoundUsed[me.id] = 0;
 
@@ -1207,6 +1368,7 @@ function startRound() {
 
   simulateBotSubmissions();
   renderGameScreen();
+  if (isGameHost) pushRoundToBackend(currentRoom?.code).catch(() => {});
 }
 
 function getCzar() {
@@ -1300,8 +1462,13 @@ function rerollCard(cardId) {
 }
 
 function submitCards(cardIds) {
+  if (gameState.submissions[me.id]) return; // dedup
   gameState.submissions[me.id] = cardIds;
+  const myTexts = cardIds.map(id => gameState.cardTextById[id] || '');
+  gameState.submissionTexts = gameState.submissionTexts || {};
+  gameState.submissionTexts[me.id] = myTexts;
   gameState.hands[me.id] = (gameState.hands[me.id] || []).filter(c => !cardIds.includes(c.id));
+  if (useFirestoreGameSync()) pushSubmissionToBackend(currentRoom.code, me.id, myTexts).catch(() => {});
   simulateBotSubmissions();
 
   const czar = getCzar();
@@ -1329,7 +1496,12 @@ function showCzarJudging() {
 
 function renderSubmissions() {
   const cont = document.getElementById('submittedCards');
-  const submitters = Object.keys(gameState.submissions).filter(id => id !== getCzar().id);
+  const czar = getCzar();
+  const allSubmitterIds = new Set([
+    ...Object.keys(gameState.submissions || {}),
+    ...Object.keys(gameState.submissionTexts || {})
+  ]);
+  const submitters = [...allSubmitterIds].filter(id => id !== czar.id);
 
   if (!submitters.length) {
     cont.innerHTML = '<p style="color:#555;">Waiting for players to submit…</p>';
@@ -1337,8 +1509,7 @@ function renderSubmissions() {
   }
 
   cont.innerHTML = shuffle(submitters).map(pid => {
-    const cardIds = gameState.submissions[pid] || [];
-    const texts = cardIds.map(id => gameState.cardTextById[id] || '').filter(Boolean);
+    const texts = getSubmissionTexts(pid).filter(Boolean);
     return `<div class="white-card" onclick="czarPick('${pid}')">${escHtml(texts.join(' / '))}</div>`;
   }).join('');
 }
@@ -1347,7 +1518,7 @@ window.czarPick = function(winnerId) {
   resolveRound(winnerId);
 };
 
-function resolveRound(winnerId) {
+function resolveRound(winnerId, fromServer = false) {
   const winner = gameState.room.players.find(p => p.id === winnerId);
   if (!winner) {
     nextRound();
@@ -1362,9 +1533,12 @@ function resolveRound(winnerId) {
     save('cah_player', me);
   }
 
+  if (!fromServer) {
+    pushResultToBackend(currentRoom?.code, winnerId, gameState.scores).catch(() => {});
+  }
+
   const bc = gameState.currentBlack;
-  const cardIds = gameState.submissions[winnerId] || [];
-  const texts = cardIds.map(id => gameState.cardTextById[id] || '').filter(Boolean);
+  const texts = getSubmissionTexts(winnerId).filter(Boolean);
   const praise = WINNER_PRAISES[Math.floor(Math.random() * WINNER_PRAISES.length)];
 
   document.getElementById('resultBlack').textContent = bc.text;
@@ -1387,7 +1561,12 @@ function resolveRound(winnerId) {
   }
 }
 
-document.getElementById('btnNextRound').addEventListener('click', nextRound);
+document.getElementById('btnNextRound').addEventListener('click', () => {
+  // In Firestore multiplayer, only the game host advances rounds.
+  // Non-hosts wait for the server-pushed round state.
+  if (useFirestoreGameSync() && !isGameHost) return;
+  nextRound();
+});
 
 function nextRound() {
   gameState.round++;
@@ -1469,7 +1648,11 @@ function isBotPlayer(playerId) {
 
 function getEligibleSubmitters() {
   const czar = getCzar();
-  return Object.keys(gameState.submissions).filter(id => id !== czar.id);
+  const allIds = new Set([
+    ...Object.keys(gameState.submissions || {}),
+    ...Object.keys(gameState.submissionTexts || {})
+  ]);
+  return [...allIds].filter(id => id !== czar.id);
 }
 
 function pickWinningSubmission(submitters) {
@@ -1478,8 +1661,7 @@ function pickWinningSubmission(submitters) {
 
   if (mode === 'spicy') {
     const scored = submitters.map(id => {
-      const cards = (gameState.submissions[id] || []).map(cardId => gameState.cardTextById[cardId] || '');
-      const score = cards.reduce((sum, text) => sum + scoreCardText(text), 0);
+      const score = getSubmissionTexts(id).reduce((sum, text) => sum + scoreCardText(text), 0);
       return { id, weight: Math.max(1, score + 1) };
     });
     return weightedRandomId(scored);
@@ -1487,8 +1669,7 @@ function pickWinningSubmission(submitters) {
 
   if (mode === 'chaos') {
     const scored = submitters.map(id => {
-      const cards = (gameState.submissions[id] || []).map(cardId => gameState.cardTextById[cardId] || '');
-      const score = cards.reduce((sum, text) => sum + scoreCardText(text), 0);
+      const score = getSubmissionTexts(id).reduce((sum, text) => sum + scoreCardText(text), 0);
       return { id, score };
     }).sort((a, b) => a.score - b.score);
 
@@ -1562,7 +1743,13 @@ function simulateBotSubmissions() {
 
     const chosen = chooseBotCards(player.id, pickCount);
     gameState.submissions[player.id] = chosen;
+    const botTexts = chosen.map(id => gameState.cardTextById[id] || '');
+    gameState.submissionTexts = gameState.submissionTexts || {};
+    gameState.submissionTexts[player.id] = botTexts;
     gameState.hands[player.id] = (gameState.hands[player.id] || []).filter(card => !chosen.includes(card.id));
+    if (useFirestoreGameSync() && isGameHost) {
+      pushSubmissionToBackend(currentRoom.code, player.id, botTexts).catch(() => {});
+    }
   });
 }
 

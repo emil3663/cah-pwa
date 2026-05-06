@@ -100,6 +100,13 @@ project (CC BY-NC-SA 4.0).
 | RM-12 | Firestore-backed room create | Creating room writes rooms/{code} and opens lobby | ⬜ |
 | RM-13 | Firestore-backed room join | Joining adds player in rooms/{code}.players in real time | ⬜ |
 | RM-14 | Lobby realtime sync | Two clients in same room see live player list updates | ⬜ |
+| GC-01 | Game starts for non-host | Non-host client auto-starts game when host clicks Start | ⬜ |
+| GC-02 | Round state sync | All clients see same black card and czar on round start | ⬜ |
+| GC-03 | Submission sync | Czar sees submissions from remote players in real time | ⬜ |
+| GC-04 | Duplicate submission dedup | Submitting twice does not overwrite Firestore entry | ⬜ |
+| GC-05 | Result broadcast | Czar picks winner and all clients advance to result screen | ⬜ |
+| GC-06 | Next-round host gate | Non-host pressing Next Round is a no-op; host advances all | ⬜ |
+| GC-07 | Bot fallback solo play | Solo game with bots works unchanged without Firestore sync | ⬜ |
 
 ### 3.3 Game Modes
 

@@ -14,9 +14,9 @@ Track the remaining long-term roadmap items as concrete phases so the team can e
 - [x] Sync lobby joins/leaves and room updates across devices.
 
 ## Phase C: Real Multiplayer Game Loop
-- [ ] Sync round progression and submissions in real-time.
-- [ ] Add reconciliation logic to avoid duplicate submissions.
-- [ ] Keep bot simulation as fallback for solo/local testing.
+- [x] Sync round progression and submissions in real-time.
+- [x] Add reconciliation logic to avoid duplicate submissions.
+- [x] Keep bot simulation as fallback for solo/local testing.
 
 ## Phase D: In-Game Chat
 - [ ] Add room-scoped chat channel.
