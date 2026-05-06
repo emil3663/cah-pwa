@@ -8,7 +8,7 @@
   <link rel="manifest" href="manifest.json" />
   <meta name="theme-color" content="#111111" />
   <link rel="apple-touch-icon" href="icons/icon-192.png" />
-  <link rel="stylesheet" href="style.css?v=16" />
+  <link rel="stylesheet" href="style.css?v=17" />
 </head>
 <body>
 
@@ -81,7 +81,10 @@
       <div id="deckStoreList" class="deck-store-list"></div>
       <div class="deck-store-actions">
         <span id="deckCartSummary">No decks selected.</span>
-        <button class="btn-white sm" id="btnOpenCheckout" disabled>Checkout</button>
+        <div class="deck-store-actions-right">
+          <button class="btn-ghost sm" id="btnOpenImportDeck">Import Custom Pack</button>
+          <button class="btn-white sm" id="btnOpenCheckout" disabled>Checkout</button>
+        </div>
       </div>
     </div>
 
@@ -95,6 +98,24 @@
         <div id="checkoutDeckList" class="checkout-list"></div>
         <div class="checkout-total" id="checkoutTotals"></div>
         <button class="btn-white" id="btnConfirmCheckout">Confirm Purchase</button>
+      </div>
+    </div>
+
+    <div id="deckImportModal" class="checkout-modal hidden" role="dialog" aria-modal="true" aria-labelledby="importDeckTitle">
+      <div class="checkout-card">
+        <div class="checkout-head">
+          <h3 id="importDeckTitle">Create / Import Custom Pack</h3>
+          <button class="btn-ghost sm" id="btnCloseImportDeck">Close</button>
+        </div>
+        <p class="checkout-note">Paste JSON array/object or use one white card per line. Minimum 20 cards.</p>
+        <label for="customDeckName">Deck Name (optional if JSON includes name)</label>
+        <input type="text" id="customDeckName" maxlength="40" placeholder="My Chaotic Pack" />
+        <label for="customDeckDescription">Description (optional)</label>
+        <input type="text" id="customDeckDescription" maxlength="120" placeholder="Short description" />
+        <label for="customDeckCards">Cards</label>
+        <textarea id="customDeckCards" rows="10" placeholder='JSON array: ["Card 1", "Card 2"]&#10;OR object: {"name":"Pack","whiteCards":[...]}&#10;OR one card per line'></textarea>
+        <div id="customDeckImportMessage" class="deck-store-message"></div>
+        <button class="btn-white" id="btnConfirmImportDeck">Save Custom Deck</button>
       </div>
     </div>
   </div>
@@ -295,8 +316,8 @@
     window.firebaseDb = firebase.firestore();
   </script>
   
-  <script src="cards.js?v=16"></script>
-  <script src="app.js?v=16"></script>
+  <script src="cards.js?v=17"></script>
+  <script src="app.js?v=17"></script>
   <script>
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('service-worker.js').catch(() => {});

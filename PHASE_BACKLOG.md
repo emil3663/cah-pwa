@@ -24,9 +24,9 @@ Track the remaining long-term roadmap items as concrete phases so the team can e
 - [x] Basic moderation guardrails (length, spam throttling).
 
 ## Phase E: Custom Packs + History
-- [ ] Add custom deck creation/import flow.
-- [ ] Store deck metadata and ownership in profile.
-- [ ] Add game history summary screen.
+- [x] Add custom deck creation/import flow.
+- [x] Store deck metadata and ownership in profile.
+- [x] Add game history summary screen.
 
 ## Definition of Done per phase
 - Feature merged to `main`

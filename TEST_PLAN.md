@@ -211,6 +211,13 @@ project (CC BY-NC-SA 4.0).
 | DE-21 | Preview action flow | Claim/equip/add-remove-cart actions work from selected preview panel | ⬜ |
 | DE-22 | Category coverage | Store contains 10 categories with 10 decks each | ⬜ |
 | DE-23 | NSFW category visibility | Dark and NSFW grouping is present and collapsible in store | ⬜ |
+| DE-24 | Custom pack import (line mode) | One-card-per-line input saves custom deck when >=20 cards | ⬜ |
+| DE-25 | Custom pack import (JSON array) | JSON string array input saves deck and equips it automatically | ⬜ |
+| DE-26 | Custom pack import (JSON object) | Object with name/description/whiteCards is parsed and saved | ⬜ |
+| DE-27 | Custom pack validation floor | Import with <20 cards is rejected with clear message | ⬜ |
+| DE-28 | Custom pack ownership persistence | Imported deck remains owned and selectable after reload | ⬜ |
+| DE-29 | Custom pack gameplay draw | Starting a game with custom deck yields cards from imported card list | ⬜ |
+| DE-30 | Custom pack delete | Deleting custom deck removes ownership and falls back active deck to starter if needed | ⬜ |
 
 ### 3.10 Room NSFW Toggle
 
@@ -232,6 +239,10 @@ project (CC BY-NC-SA 4.0).
 | ST-01 | Stats after first game | gamesPlayed = 1 | ⬜ |
 | ST-02 | Win rate calculation | Correct % shown | ⬜ |
 | ST-03 | Stats persist on reload | localStorage survives reload | ⬜ |
+| ST-04 | Recent games entry created | Completing a game adds one entry to Recent Games in stats view | ⬜ |
+| ST-05 | Recent games newest-first | Most recently completed game appears at the top of the list | ⬜ |
+| ST-06 | Recent games cap | After 12+ games, only the latest 12 entries are retained | ⬜ |
+| ST-07 | Recent games details | Entry shows winner name, top score, mode, room/local tag, and timestamp | ⬜ |
 
 ### 3.7 PWA
 

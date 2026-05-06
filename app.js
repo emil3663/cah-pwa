@@ -20,6 +20,9 @@ const ENDGAME_TOKEN_PODIUM = { 1: 5, 2: 3, 3: 1 };
 const FEATURED_SPECIAL_DECK_ID = 'special-featured';
 const FEATURED_SPECIAL_DISCOUNT_TOKENS = 10;
 const FREE_STARTER_DECK_ID = 'general-classic';
+const CUSTOM_DECK_PREFIX = 'custom-';
+const CUSTOM_DECK_CATEGORY_ID = 'custom-player';
+const MIN_CUSTOM_DECK_CARDS = 20;
 
 /* ─── State ─── */
 let me = load('cah_player', null);
@@ -119,6 +122,8 @@ function makeDefaultProfile(name, id, email = '') {
     email,
     stats: { gamesPlayed: 0, gamesWon: 0, roundsWon: 0 },
     economy: { coins: STARTER_COINS, tokens: STARTER_TOKENS },
+    customDecks: [],
+    gameHistory: [],
     deckProgress: {
       ownedDeckIds: [],
       activeDeckId: null,
@@ -137,6 +142,40 @@ function normalizeDeckProgress(dp) {
     freeStarterClaimed: Boolean(src.freeStarterClaimed),
     featuredSpecialClaimed: Boolean(src.featuredSpecialClaimed)
   };
+}
+
+function normalizeCustomDecks(decks) {
+  if (!Array.isArray(decks)) return [];
+  const seen = new Set();
+  const out = [];
+
+  decks.forEach(deck => {
+    const id = String(deck?.id || '').trim();
+    const name = String(deck?.name || '').trim();
+    const cards = Array.isArray(deck?.whiteCards)
+      ? deck.whiteCards.map(c => String(c || '').trim()).filter(Boolean)
+      : [];
+
+    if (!id || seen.has(id) || !name || cards.length < MIN_CUSTOM_DECK_CARDS) return;
+    seen.add(id);
+    out.push({
+      id,
+      name,
+      description: String(deck?.description || 'Player-created custom deck.').trim(),
+      categoryId: CUSTOM_DECK_CATEGORY_ID,
+      family: 'general',
+      tier: 1,
+      tokenCost: 0,
+      sourcePackKey: 'custom',
+      sourcePackName: 'Custom Pack',
+      sourceOfficial: false,
+      whiteCards: cards,
+      createdAt: Number(deck?.createdAt) || Date.now(),
+      updatedAt: Number(deck?.updatedAt) || Date.now()
+    });
+  });
+
+  return out;
 }
 
 function mergeProfiles(baseProfile, legacyProfile) {
@@ -172,6 +211,16 @@ function mergeProfiles(baseProfile, legacyProfile) {
       coins: Math.max(baseEconomy.coins || 0, legacyEconomy.coins || 0),
       tokens: Math.max(baseEconomy.tokens || 0, legacyEconomy.tokens || 0)
     },
+    customDecks: (() => {
+      const merged = normalizeCustomDecks([...(baseProfile.customDecks || []), ...(legacyProfile.customDecks || [])]);
+      const byId = new Map();
+      merged.forEach(deck => {
+        const prev = byId.get(deck.id);
+        if (!prev || (deck.updatedAt || 0) >= (prev.updatedAt || 0)) byId.set(deck.id, deck);
+      });
+      return [...byId.values()];
+    })(),
+    gameHistory: Array.isArray(baseProfile.gameHistory) ? baseProfile.gameHistory : (Array.isArray(legacyProfile.gameHistory) ? legacyProfile.gameHistory : []),
     deckProgress: mergedDeck
   };
 }
@@ -602,10 +651,14 @@ function initChatHandlers() {
 }
 
 /* ─── Profile / Economy ─── */
+const GAME_HISTORY_LIMIT = 12;
+
 function initPlayerProfile() {
   if (!me) return;
   me.stats = me.stats || { gamesPlayed: 0, gamesWon: 0, roundsWon: 0 };
   me.economy = me.economy || { coins: STARTER_COINS, tokens: STARTER_TOKENS };
+  me.gameHistory = Array.isArray(me.gameHistory) ? me.gameHistory : [];
+  me.customDecks = normalizeCustomDecks(me.customDecks || []);
   me.deckProgress = me.deckProgress || {
     ownedDeckIds: [],
     activeDeckId: null,
@@ -614,6 +667,9 @@ function initPlayerProfile() {
   };
 
   me.deckProgress.ownedDeckIds = Array.isArray(me.deckProgress.ownedDeckIds) ? me.deckProgress.ownedDeckIds : [];
+  me.customDecks.forEach(deck => {
+    if (!me.deckProgress.ownedDeckIds.includes(deck.id)) me.deckProgress.ownedDeckIds.push(deck.id);
+  });
 
   if (me.deckProgress.activeDeckId && !ownsDeck(me.deckProgress.activeDeckId)) {
     me.deckProgress.activeDeckId = null;
@@ -622,8 +678,12 @@ function initPlayerProfile() {
   save('cah_player', me);
 }
 
+function getAllDecks() {
+  return [...(CAH_THEME_DECKS || []), ...(me?.customDecks || [])];
+}
+
 function getDeckById(deckId) {
-  return (CAH_THEME_DECKS || []).find(d => d.id === deckId) || null;
+  return getAllDecks().find(d => d.id === deckId) || null;
 }
 
 function getDeckTokenCost(deck) {
@@ -675,12 +735,20 @@ function openDeckStore(message = '') {
   renderDeckStore(message);
 }
 
+function getDeckCategoriesForStore() {
+  const base = [...(CAH_DECK_CATEGORIES || [])];
+  if ((me?.customDecks || []).length) {
+    base.unshift({ id: CUSTOM_DECK_CATEGORY_ID, name: 'My Custom Packs', nsfw: false });
+  }
+  return base;
+}
+
 function initDeckCategoryCollapseState() {
-  const categories = CAH_DECK_CATEGORIES || [];
+  const categories = getDeckCategoriesForStore();
   deckCategoryCollapsed = {};
   deckPreviewByCategory = {};
   categories.forEach(category => {
-    deckCategoryCollapsed[category.id] = category.id !== 'core-expansions';
+    deckCategoryCollapsed[category.id] = !['core-expansions', CUSTOM_DECK_CATEGORY_ID].includes(category.id);
   });
 }
 
@@ -693,15 +761,16 @@ function renderDeckStore(message = '') {
   renderWallet();
   const msgEl = document.getElementById('deckStoreMessage');
   const listEl = document.getElementById('deckStoreList');
-  const categories = CAH_DECK_CATEGORIES || [];
+  const categories = getDeckCategoriesForStore();
+  const allDecks = getAllDecks();
 
   const mustClaim = !isAdminUser() && (!me.deckProgress.freeStarterClaimed || !hasActiveDeck());
   msgEl.textContent = message || (mustClaim
     ? 'Claim your free first deck and select an active deck before creating or joining games.'
-    : 'Browse by category. Expand groups, select decks, then complete your purchase in checkout.');
+    : 'Browse by category. Expand groups, select decks, then complete your purchase in checkout. You can also import custom packs.');
 
   listEl.innerHTML = categories.map(category => {
-    const decksInCategory = CAH_THEME_DECKS.filter(deck => deck.categoryId === category.id);
+    const decksInCategory = allDecks.filter(deck => deck.categoryId === category.id);
     const collapsed = deckCategoryCollapsed[category.id] !== false;
     const backdrop = getCategoryBackdrop(category.id);
     const selectedDeckId = deckPreviewByCategory[category.id] || '';
@@ -736,6 +805,7 @@ function renderDeckStore(message = '') {
 function renderDeckPreviewCard(deck, category) {
   const owned = ownsDeck(deck.id);
   const selected = me.deckProgress.activeDeckId === deck.id;
+  const isCustom = deck.categoryId === CUSTOM_DECK_CATEGORY_ID;
   const tokenCost = getDeckTokenCost(deck);
   const coinCost = getDeckCoinCost(deck);
   const isFreeStarterClaim = !isAdminUser() && !me.deckProgress.freeStarterClaimed && deck.id === FREE_STARTER_DECK_ID;
@@ -745,6 +815,10 @@ function renderDeckPreviewCard(deck, category) {
   let actionHtml = '';
   if (isFreeStarterClaim) {
     actionHtml = `<button class="btn-white sm" onclick="claimStarterDeck()">Claim Free Starter Deck</button>`;
+  } else if (isCustom) {
+    actionHtml = selected
+      ? `<span class="deck-tag-selected">Equipped</span><button class="btn-ghost sm" onclick="deleteCustomDeck('${deck.id}')">Delete</button>`
+      : `<button class="btn-ghost sm" onclick="selectDeck('${deck.id}')">Equip Deck</button><button class="btn-ghost sm" onclick="deleteCustomDeck('${deck.id}')">Delete</button>`;
   } else if (owned) {
     actionHtml = selected
       ? '<span class="deck-tag-selected">Equipped</span>'
@@ -771,7 +845,9 @@ function renderDeckPreviewCard(deck, category) {
         </div>
       </div>
       <div class="deck-right">
-        ${owned
+        ${isCustom
+          ? '<div class="deck-price">Custom</div>'
+          : owned
           ? '<div class="deck-price">Owned</div>'
           : `<div class="deck-price">${tokenCost} 🔷<br><span>${coinCost} 🪙</span></div>`}
         <div class="deck-actions">${actionHtml}</div>
@@ -795,7 +871,7 @@ window.selectDeckPreview = function(categoryId, deckId) {
 function renderCartSummary() {
   const checkoutBtn = document.getElementById('btnOpenCheckout');
   const summaryEl = document.getElementById('deckCartSummary');
-  const selectedDecks = CAH_THEME_DECKS.filter(d => deckCart.has(d.id) && !ownsDeck(d.id));
+  const selectedDecks = getAllDecks().filter(d => deckCart.has(d.id) && !ownsDeck(d.id));
 
   if (!selectedDecks.length) {
     summaryEl.textContent = 'No decks selected.';
@@ -817,7 +893,7 @@ window.toggleDeckInCart = function(deckId) {
 };
 
 function openCheckoutModal() {
-  const selectedDecks = CAH_THEME_DECKS.filter(d => deckCart.has(d.id) && !ownsDeck(d.id));
+  const selectedDecks = getAllDecks().filter(d => deckCart.has(d.id) && !ownsDeck(d.id));
   if (!selectedDecks.length) return;
 
   const listEl = document.getElementById('checkoutDeckList');
@@ -850,7 +926,7 @@ function closeCheckoutModal() {
 window.removeDeckFromCart = function(deckId) {
   deckCart.delete(deckId);
   renderDeckStore();
-  const selectedDecks = CAH_THEME_DECKS.filter(d => deckCart.has(d.id) && !ownsDeck(d.id));
+  const selectedDecks = getAllDecks().filter(d => deckCart.has(d.id) && !ownsDeck(d.id));
   if (!selectedDecks.length) {
     closeCheckoutModal();
     return;
@@ -859,7 +935,7 @@ window.removeDeckFromCart = function(deckId) {
 };
 
 function confirmCheckoutPurchase() {
-  const selectedDecks = CAH_THEME_DECKS.filter(d => deckCart.has(d.id) && !ownsDeck(d.id));
+  const selectedDecks = getAllDecks().filter(d => deckCart.has(d.id) && !ownsDeck(d.id));
   if (!selectedDecks.length) {
     closeCheckoutModal();
     return;
@@ -954,7 +1030,8 @@ function getCategoryBackdrop(categoryId) {
     'dark-nsfw': { c1: '#8a2f37', c2: '#220f12', icon: '☠' },
     'regional-language': { c1: '#4f8a6c', c2: '#162019', icon: '◈' },
     'sports-competition': { c1: '#2f7994', c2: '#111f25', icon: '✪' },
-    'meme-chaos': { c1: '#8f3d95', c2: '#1f1322', icon: '✹' }
+    'meme-chaos': { c1: '#8f3d95', c2: '#1f1322', icon: '✹' },
+    'custom-player': { c1: '#6a5a2d', c2: '#1e1a0f', icon: '✎' }
   };
 
   const bg = backdrops[categoryId] || { c1: '#3f4d73', c2: '#151922', icon: '◇' };
@@ -990,11 +1067,121 @@ window.selectDeck = function(deckId) {
   renderDeckStore('Active deck updated.');
 };
 
+function parseCustomCardsInput(raw) {
+  const text = String(raw || '').trim();
+  if (!text) return { ok: false, error: 'Please provide cards as JSON or one card per line.' };
+
+  const fromLines = t => t.split(/\r?\n/).map(s => s.trim()).filter(Boolean);
+
+  try {
+    const parsed = JSON.parse(text);
+    if (Array.isArray(parsed)) {
+      const cards = parsed.map(v => String(v || '').trim()).filter(Boolean);
+      return { ok: true, cards };
+    }
+    if (parsed && Array.isArray(parsed.whiteCards)) {
+      const cards = parsed.whiteCards.map(v => String(v || '').trim()).filter(Boolean);
+      return {
+        ok: true,
+        cards,
+        name: String(parsed.name || '').trim(),
+        description: String(parsed.description || '').trim()
+      };
+    }
+    return { ok: false, error: 'JSON must be an array of cards or an object with whiteCards array.' };
+  } catch {
+    return { ok: true, cards: fromLines(text) };
+  }
+}
+
+function closeDeckImportModal() {
+  document.getElementById('deckImportModal').classList.add('hidden');
+}
+
+function openDeckImportModal() {
+  document.getElementById('customDeckName').value = '';
+  document.getElementById('customDeckDescription').value = '';
+  document.getElementById('customDeckCards').value = '';
+  document.getElementById('customDeckImportMessage').textContent = '';
+  document.getElementById('deckImportModal').classList.remove('hidden');
+}
+
+function createOrImportCustomDeck() {
+  const nameInput = document.getElementById('customDeckName').value.trim();
+  const descInput = document.getElementById('customDeckDescription').value.trim();
+  const cardsInput = document.getElementById('customDeckCards').value;
+  const msgEl = document.getElementById('customDeckImportMessage');
+
+  const parsed = parseCustomCardsInput(cardsInput);
+  if (!parsed.ok) {
+    msgEl.textContent = parsed.error;
+    return;
+  }
+
+  const cards = parsed.cards;
+  if (cards.length < MIN_CUSTOM_DECK_CARDS) {
+    msgEl.textContent = `Need at least ${MIN_CUSTOM_DECK_CARDS} non-empty cards. Found ${cards.length}.`;
+    return;
+  }
+
+  const now = Date.now();
+  const deckName = nameInput || parsed.name || `Custom Pack ${new Date(now).toLocaleDateString()}`;
+  const deckDescription = descInput || parsed.description || 'Player-created custom deck.';
+  const deckId = `${CUSTOM_DECK_PREFIX}${genId()}`;
+  const deck = {
+    id: deckId,
+    name: deckName,
+    description: deckDescription,
+    categoryId: CUSTOM_DECK_CATEGORY_ID,
+    family: 'general',
+    tier: 1,
+    tokenCost: 0,
+    sourcePackKey: 'custom',
+    sourcePackName: 'Custom Pack',
+    sourceOfficial: false,
+    whiteCards: cards,
+    createdAt: now,
+    updatedAt: now
+  };
+
+  me.customDecks = normalizeCustomDecks([...(me.customDecks || []), deck]);
+  me.deckProgress.ownedDeckIds = [...new Set([...(me.deckProgress.ownedDeckIds || []), deckId])];
+  me.deckProgress.activeDeckId = deckId;
+  save('cah_player', me);
+
+  closeDeckImportModal();
+  initDeckCategoryCollapseState();
+  deckPreviewByCategory[CUSTOM_DECK_CATEGORY_ID] = deckId;
+  renderDeckStore(`Imported custom deck: ${deckName} (${cards.length} cards).`);
+}
+
+window.deleteCustomDeck = function(deckId) {
+  const deck = getDeckById(deckId);
+  if (!deck || deck.categoryId !== CUSTOM_DECK_CATEGORY_ID) return;
+  if (!confirm(`Delete custom deck "${deck.name}"? This cannot be undone.`)) return;
+
+  me.customDecks = (me.customDecks || []).filter(d => d.id !== deckId);
+  me.deckProgress.ownedDeckIds = (me.deckProgress.ownedDeckIds || []).filter(id => id !== deckId);
+  if (me.deckProgress.activeDeckId === deckId) {
+    me.deckProgress.activeDeckId = FREE_STARTER_DECK_ID;
+  }
+  save('cah_player', me);
+
+  initDeckCategoryCollapseState();
+  renderDeckStore(`Deleted custom deck: ${deck.name}.`);
+};
+
 document.getElementById('btnOpenCheckout').addEventListener('click', openCheckoutModal);
 document.getElementById('btnCloseCheckout').addEventListener('click', closeCheckoutModal);
 document.getElementById('btnConfirmCheckout').addEventListener('click', confirmCheckoutPurchase);
+document.getElementById('btnOpenImportDeck').addEventListener('click', openDeckImportModal);
+document.getElementById('btnCloseImportDeck').addEventListener('click', closeDeckImportModal);
+document.getElementById('btnConfirmImportDeck').addEventListener('click', createOrImportCustomDeck);
 document.getElementById('deckCheckoutModal').addEventListener('click', (e) => {
   if (e.target.id === 'deckCheckoutModal') closeCheckoutModal();
+});
+document.getElementById('deckImportModal').addEventListener('click', (e) => {
+  if (e.target.id === 'deckImportModal') closeDeckImportModal();
 });
 
 function requireDeckAccess(message) {
@@ -1429,8 +1616,14 @@ function startGame(room) {
 }
 
 function createDeckPile(deckId) {
-  const deck = getDeckById(deckId) || getDeckById(FREE_STARTER_DECK_ID) || CAH_THEME_DECKS[0];
-  const base = deck.whiteCardIndexes.map(idx => ({ baseId: idx, text: CAH_WHITE_CARDS[idx] || '' }));
+  const fallbackDeck = getDeckById(FREE_STARTER_DECK_ID) || getAllDecks()[0];
+  const deck = getDeckById(deckId) || fallbackDeck;
+  if (!deck) return [];
+
+  const base = Array.isArray(deck.whiteCards)
+    ? deck.whiteCards.map((text, idx) => ({ baseId: idx, text: String(text || '').trim() }))
+    : (deck.whiteCardIndexes || []).map(idx => ({ baseId: idx, text: CAH_WHITE_CARDS[idx] || '' }));
+
   const expanded = [];
   for (let i = 0; i < 4; i++) expanded.push(...base);
   return shuffle(expanded);
@@ -1458,7 +1651,7 @@ function chooseDeckForBot(bot, allowNsfw = true) {
     const chaos = getDeckById('special-chaos') ? 'special-chaos' : 'general-absurd';
     return canUseDeckInRoom(chaos, allowNsfw) ? chaos : fallbackSafe;
   }
-  const randomDeck = getDeckById('general-classic') ? 'general-classic' : CAH_THEME_DECKS[0].id;
+  const randomDeck = getDeckById('general-classic') ? 'general-classic' : (getAllDecks()[0]?.id || fallbackSafe);
   return canUseDeckInRoom(randomDeck, allowNsfw) ? randomDeck : fallbackSafe;
 }
 
@@ -1891,6 +2084,31 @@ function awardEndgameRewardsIfEligible() {
   if (aiCount <= 1) me.economy.tokens += tokens;
 }
 
+function recordGameHistory(winner, praise) {
+  if (!me || !gameState || !winner) return;
+
+  const sorted = [...gameState.room.players]
+    .sort((a, b) => (gameState.scores[b.id] || 0) - (gameState.scores[a.id] || 0)
+    )
+    .map(p => ({ name: p.name, score: gameState.scores[p.id] || 0, isBot: Boolean(p.isBot) }));
+
+  const entry = {
+    id: genId(),
+    at: Date.now(),
+    roomCode: currentRoom?.code || null,
+    mode: gameState.room.mode || 'classic',
+    roundsToWin: gameState.room.roundsToWin || 7,
+    winnerName: winner.name,
+    winnerId: winner.id,
+    myScore: gameState.scores[me.id] || 0,
+    myWon: winner.id === me.id,
+    players: sorted,
+    praise: praise || ''
+  };
+
+  me.gameHistory = [...(me.gameHistory || []), entry].slice(-GAME_HISTORY_LIMIT);
+}
+
 function showGameOver(winner, praise) {
   document.getElementById('gameOverWinner').textContent = '🎉 ' + winner.name + ' wins the game!';
   document.getElementById('gameOverPraise').textContent = praise;
@@ -1907,6 +2125,7 @@ function showGameOver(winner, praise) {
     me.stats.roundsWon = (me.stats.roundsWon || 0) + (gameState.scores[me.id] || 0);
 
     awardEndgameRewardsIfEligible();
+    recordGameHistory(winner, praise);
     save('cah_player', me);
   }
 
@@ -1964,7 +2183,22 @@ window.removeFriend = id => {
 function renderStats() {
   const stats = me?.stats || { gamesPlayed: 0, gamesWon: 0, roundsWon: 0 };
   const economy = me?.economy || { coins: 0, tokens: 0 };
+  const history = Array.isArray(me?.gameHistory) ? [...me.gameHistory].reverse() : [];
   const winRate = stats.gamesPlayed > 0 ? Math.round((stats.gamesWon / stats.gamesPlayed) * 100) : 0;
+
+  const historyHtml = history.length
+    ? history.map(entry => {
+      const when = new Date(entry.at).toLocaleString();
+      const room = entry.roomCode ? `Room ${escHtml(entry.roomCode)}` : 'Local room';
+      const winner = escHtml(entry.winnerName || 'Unknown');
+      const mode = escHtml(String(entry.mode || 'classic'));
+      const topScore = Number(entry.players?.[0]?.score || 0);
+      return `<div class="score-row" style="flex-direction:column;align-items:flex-start;gap:4px;">
+        <div style="font-weight:800;">${entry.myWon ? '✅' : '•'} ${winner} won (${topScore} ✦)</div>
+        <div style="color:var(--grey);font-size:.82rem;">${escHtml(room)} · ${escHtml(mode)} · ${when}</div>
+      </div>`;
+    }).join('')
+    : '<p style="color:#777;text-align:center;margin-top:8px;">No completed games yet.</p>';
 
   document.getElementById('statsBody').innerHTML = `
     <div style="text-align:center;margin-bottom:24px;">
@@ -1978,6 +2212,10 @@ function renderStats() {
       <div class="stat-card"><div class="stat-num">${winRate}%</div><div class="stat-label">Win Rate</div></div>
       <div class="stat-card"><div class="stat-num">${economy.coins}</div><div class="stat-label">Coins</div></div>
       <div class="stat-card"><div class="stat-num">${economy.tokens}</div><div class="stat-label">Tokens</div></div>
+    </div>
+    <div style="margin-top:18px;">
+      <h3 style="margin:0 0 10px;">Recent Games</h3>
+      <div class="scoreboard">${historyHtml}</div>
     </div>`;
 }
 
