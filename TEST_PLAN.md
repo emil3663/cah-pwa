@@ -79,6 +79,8 @@ project (CC BY-NC-SA 4.0).
 | LG-11 | Invalid email format on sign-in/up | Inline validation error shown before Firebase request | ⬜ |
 | LG-12 | Reset password flow | Reset email is sent for valid registered email | ⬜ |
 | LG-13 | Unverified account sign-in note | Success message indicates email is not yet verified | ⬜ |
+| LG-14 | Legacy local profile migration | On first account sign-in, local stats/economy/decks merge into users/{uid} profile | ⬜ |
+| LG-15 | Firestore ownership rules | Authenticated user can read/write only users/{uid}; all other docs denied | ⬜ |
 
 ### 3.2 Room Management
 

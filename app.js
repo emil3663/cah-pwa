@@ -112,6 +112,70 @@ function makeDefaultProfile(name, id, email = '') {
   };
 }
 
+function normalizeDeckProgress(dp) {
+  const src = dp || {};
+  const owned = Array.isArray(src.ownedDeckIds) ? src.ownedDeckIds : [];
+  return {
+    ownedDeckIds: [...new Set(owned.filter(Boolean))],
+    activeDeckId: src.activeDeckId || null,
+    freeStarterClaimed: Boolean(src.freeStarterClaimed),
+    featuredSpecialClaimed: Boolean(src.featuredSpecialClaimed)
+  };
+}
+
+function mergeProfiles(baseProfile, legacyProfile) {
+  if (!legacyProfile) return baseProfile;
+
+  const baseStats = baseProfile.stats || {};
+  const legacyStats = legacyProfile.stats || {};
+  const baseEconomy = baseProfile.economy || {};
+  const legacyEconomy = legacyProfile.economy || {};
+
+  const mergedDeck = (() => {
+    const a = normalizeDeckProgress(baseProfile.deckProgress);
+    const b = normalizeDeckProgress(legacyProfile.deckProgress);
+    const owned = [...new Set([...(a.ownedDeckIds || []), ...(b.ownedDeckIds || [])])];
+    const candidate = a.activeDeckId || b.activeDeckId || null;
+    return {
+      ownedDeckIds: owned,
+      activeDeckId: candidate && owned.includes(candidate) ? candidate : (candidate || null),
+      freeStarterClaimed: a.freeStarterClaimed || b.freeStarterClaimed,
+      featuredSpecialClaimed: a.featuredSpecialClaimed || b.featuredSpecialClaimed
+    };
+  })();
+
+  return {
+    ...baseProfile,
+    name: String(baseProfile.name || legacyProfile.name || 'Player'),
+    stats: {
+      gamesPlayed: Math.max(baseStats.gamesPlayed || 0, legacyStats.gamesPlayed || 0),
+      gamesWon: Math.max(baseStats.gamesWon || 0, legacyStats.gamesWon || 0),
+      roundsWon: Math.max(baseStats.roundsWon || 0, legacyStats.roundsWon || 0)
+    },
+    economy: {
+      coins: Math.max(baseEconomy.coins || 0, legacyEconomy.coins || 0),
+      tokens: Math.max(baseEconomy.tokens || 0, legacyEconomy.tokens || 0)
+    },
+    deckProgress: mergedDeck
+  };
+}
+
+async function migrateLegacyLocalProfile(user, cloudProfile, fallbackName) {
+  const legacy = load('cah_player', null);
+  if (!legacy) return cloudProfile;
+
+  const isLegacyProfile = String(legacy.id || '') !== String(user.uid || '');
+  const merged = mergeProfiles(cloudProfile, isLegacyProfile ? legacy : null);
+
+  if (isLegacyProfile) {
+    await syncProfileToCloud(merged);
+    setAuthMessage('Local profile migrated to cloud for this account.');
+  }
+
+  const finalName = String(merged.name || fallbackName || 'Player');
+  return { ...merged, id: user.uid, email: user.email || merged.email || '', name: finalName };
+}
+
 async function loadProfileFromCloud(user, fallbackName) {
   const base = makeDefaultProfile(fallbackName || 'Player', user.uid, user.email || '');
   if (!window.firebaseDb) return base;
@@ -562,7 +626,8 @@ function requireDeckAccess(message) {
 
 /* ─── Landing / Login ─── */
 async function handleAuthSuccess(user, fallbackName, successText) {
-  me = await loadProfileFromCloud(user, fallbackName);
+  const cloudProfile = await loadProfileFromCloud(user, fallbackName);
+  me = await migrateLegacyLocalProfile(user, cloudProfile, fallbackName);
   initPlayerProfile();
   save('cah_player', me);
   document.getElementById('greetName').textContent = me.name;
