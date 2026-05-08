@@ -81,6 +81,8 @@ project (CC BY-NC-SA 4.0).
 | LG-13 | Unverified account sign-in note | Success message indicates email is not yet verified | ⬜ |
 | LG-14 | Legacy local profile migration | On first account sign-in, local stats/economy/decks merge into users/{uid} profile | ⬜ |
 | LG-15 | Firestore ownership rules | Authenticated user can read/write only users/{uid}; all other docs denied | ⬜ |
+| LG-16 | Auth on GitHub Pages origin | Sign up/sign in works on deployed `https://emil3663.github.io/cah-pwa/` origin | ⬜ |
+| LG-17 | Auth on LAN origin | Sign up/sign in works on LAN host/port once host and referrer are whitelisted | ⬜ |
 
 ### 3.2 Room Management
 

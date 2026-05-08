@@ -91,7 +91,11 @@ function isValidEmail(email) {
 
 function mapAuthError(err) {
   const code = String(err?.code || '');
+  const origin = window.location?.origin || 'this origin';
   if (code.includes('api-key-not-valid')) return 'Firebase API key is blocked for this domain. Add this origin in Firebase app settings or use the deployed site URL.';
+  if (code.includes('unauthorized-domain') || code.includes('operation-not-allowed')) {
+    return `Firebase auth is not authorized for ${origin}. Add the host to Firebase Auth Authorized domains and allow this referrer in the Firebase API key restrictions.`;
+  }
   if (code.includes('invalid-email')) return 'Please enter a valid email address.';
   if (code.includes('email-already-in-use')) return 'That email is already registered. Try signing in.';
   if (code.includes('weak-password')) return 'Password must be at least 6 characters.';
