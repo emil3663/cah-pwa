@@ -7,6 +7,9 @@ function save(k, v) {
   if (k === 'cah_player' && v?.id === REGRESSION_TEST_LOGIN.id) {
     localStorage.setItem('cah_regression_profile', JSON.stringify(v));
   }
+  if (k === 'cah_player' && v?.id === ADMIN_TEST_LOGIN.id) {
+    localStorage.setItem('cah_admin_profile', JSON.stringify(v));
+  }
   if (k === 'cah_player') queueProfileSync(v);
 }
 
@@ -26,7 +29,7 @@ const FREE_STARTER_DECK_ID = 'general-classic';
 const CUSTOM_DECK_PREFIX = 'custom-';
 const CUSTOM_DECK_CATEGORY_ID = 'custom-player';
 const MIN_CUSTOM_DECK_CARDS = 20;
-const APP_UPDATE_TAG = '2026.05.09-r8';
+const APP_UPDATE_TAG = '2026.05.09-r9';
 const REGRESSION_TEST_LOGIN = {
   email: 'regression@test.local',
   password: 'Regression123!',
@@ -36,6 +39,16 @@ const REGRESSION_TEST_LOGIN = {
 const REGRESSION_TEST_ECONOMY = {
   coins: 50000,
   tokens: 5000
+};
+const ADMIN_TEST_LOGIN = {
+  email: 'admin@test.local',
+  password: 'Admin123!',
+  name: 'admin',
+  id: 'local-admin-user-v1'
+};
+const ADMIN_TEST_ECONOMY = {
+  coins: 100000,
+  tokens: 10000
 };
 
 /* ─── State ─── */
@@ -57,6 +70,7 @@ let isGameHost = false;
 let lastCardTapAt = {};
 let botJudgeTimer = null;
 let isLocalRegressionSession = false;
+let isLocalAdminSession = false;
 
 const BOT_PERSONAS = [
   { key: 'skeeter', name: 'Skeeter', mode: 'spicy', avatar: 'icons/bot-skeeter.svg' },
@@ -139,14 +153,26 @@ function canUseRegressionLogin() {
   return isPrivateNetworkHost(window.location?.hostname);
 }
 
+function canUseAdminLogin() {
+  return isPrivateNetworkHost(window.location?.hostname);
+}
+
 function isRegressionCredentialPair(email, password) {
   return String(email || '').trim().toLowerCase() === REGRESSION_TEST_LOGIN.email
     && String(password || '') === REGRESSION_TEST_LOGIN.password;
 }
 
+function isAdminCredentialPair(email, password) {
+  return String(email || '').trim().toLowerCase() === ADMIN_TEST_LOGIN.email
+    && String(password || '') === ADMIN_TEST_LOGIN.password;
+}
+
 function getEffectiveAuthUser() {
   const firebaseUser = window.firebaseAuth?.currentUser;
   if (firebaseUser) return firebaseUser;
+  if (isLocalAdminSession && me?.id === ADMIN_TEST_LOGIN.id) {
+    return { email: ADMIN_TEST_LOGIN.email };
+  }
   if (isLocalRegressionSession && me?.id === REGRESSION_TEST_LOGIN.id) {
     return { email: REGRESSION_TEST_LOGIN.email };
   }
@@ -176,9 +202,33 @@ function getRegressionProfile() {
   };
 }
 
+function getAdminProfile() {
+  const seeded = makeDefaultProfile(ADMIN_TEST_LOGIN.name, ADMIN_TEST_LOGIN.id, ADMIN_TEST_LOGIN.email);
+  const allDeckIds = (CAH_THEME_DECKS || []).map(deck => deck.id).filter(Boolean);
+  seeded.economy = {
+    coins: ADMIN_TEST_ECONOMY.coins,
+    tokens: ADMIN_TEST_ECONOMY.tokens
+  };
+  seeded.customDecks = [];
+  seeded.gameHistory = [];
+  seeded.deckProgress = {
+    ownedDeckIds: allDeckIds,
+    activeDeckIds: allDeckIds,
+    activeDeckId: allDeckIds[0] || null,
+    freeStarterClaimed: true,
+    featuredSpecialClaimed: true
+  };
+  return {
+    ...seeded,
+    id: ADMIN_TEST_LOGIN.id,
+    name: ADMIN_TEST_LOGIN.name,
+    email: ADMIN_TEST_LOGIN.email
+  };
+}
+
 function applyBuildTag() {
   const hint = canUseRegressionLogin()
-    ? ` · Regression sign-in: ${REGRESSION_TEST_LOGIN.email} / ${REGRESSION_TEST_LOGIN.password}`
+    ? ` · Regression: ${REGRESSION_TEST_LOGIN.email} / ${REGRESSION_TEST_LOGIN.password} · Admin: ${ADMIN_TEST_LOGIN.email} / ${ADMIN_TEST_LOGIN.password}`
     : '';
   const buildText = `Build ${APP_UPDATE_TAG}`;
 
@@ -1371,6 +1421,7 @@ function requireDeckAccess(message) {
 /* ─── Landing / Login ─── */
 async function handleAuthSuccess(user, fallbackName, successText) {
   isLocalRegressionSession = false;
+  isLocalAdminSession = false;
   const cloudProfile = await loadProfileFromCloud(user, fallbackName);
   me = await migrateLegacyLocalProfile(user, cloudProfile, fallbackName);
   initPlayerProfile();
@@ -1382,8 +1433,9 @@ async function handleAuthSuccess(user, fallbackName, successText) {
 }
 
 async function handleSignOut() {
-  if (isLocalRegressionSession && !window.firebaseAuth?.currentUser) {
+  if ((isLocalRegressionSession || isLocalAdminSession) && !window.firebaseAuth?.currentUser) {
     isLocalRegressionSession = false;
+    isLocalAdminSession = false;
     me = null;
     updateAuthTopbar(null);
     showScreen('landing');
@@ -1445,6 +1497,26 @@ async function handleSignIn() {
   const fallbackName = document.getElementById('playerName').value.trim() || 'Player';
   if (!isValidEmail(email) || !password) return setAuthMessage('Enter a valid email and password to sign in.', true);
 
+  if (canUseAdminLogin() && isAdminCredentialPair(email, password)) {
+    setAuthLoading(true);
+    setAuthMessage('Signing in with local admin account...');
+    try {
+      localStorage.removeItem('cah_admin_profile');
+      me = getAdminProfile();
+      isLocalAdminSession = true;
+      isLocalRegressionSession = false;
+      initPlayerProfile();
+      save('cah_player', me);
+      document.getElementById('greetName').textContent = me.name;
+      updateAuthTopbar(getEffectiveAuthUser());
+      showScreen('menu');
+      setAuthMessage(`Signed in with local admin account. Build ${APP_UPDATE_TAG}.`);
+    } finally {
+      setAuthLoading(false);
+    }
+    return;
+  }
+
   if (canUseRegressionLogin() && isRegressionCredentialPair(email, password)) {
     setAuthLoading(true);
     setAuthMessage('Signing in with local regression test account...');
@@ -1452,6 +1524,7 @@ async function handleSignIn() {
       localStorage.removeItem('cah_regression_profile');
       me = getRegressionProfile();
       isLocalRegressionSession = true;
+      isLocalAdminSession = false;
       initPlayerProfile();
       save('cah_player', me);
       document.getElementById('greetName').textContent = me.name;

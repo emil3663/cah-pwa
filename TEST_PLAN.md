@@ -85,6 +85,7 @@ project (CC BY-NC-SA 4.0).
 | LG-17 | Auth on LAN origin | Sign up/sign in works on LAN host/port once host and referrer are whitelisted | ⬜ |
 | LG-18 | Local regression account sign-in | `regression@test.local` / `Regression123!` signs in on localhost/LAN without Firebase registration | ⬜ |
 | LG-19 | Login build/update tag visibility | Landing page shows visible build tag before authentication | ⬜ |
+| LG-20 | Local admin account sign-in | `admin@test.local` / `Admin123!` signs in on localhost/LAN with seeded admin profile | ⬜ |
 
 ### 3.2 Room Management
 
@@ -352,11 +353,22 @@ Use this fixed account for repeatable local/LAN regression runs:
 | Local profile key | `cah_regression_profile` |
 | Seeded wallet per sign-in | `50000` coins / `5000` tokens |
 
+Local admin account (localhost/LAN only):
+
+| Field | Value |
+|-------|-------|
+| Email | `admin@test.local` |
+| Password | `Admin123!` |
+| Display name | `admin` |
+| Local profile key | `cah_admin_profile` |
+| Seeded wallet per sign-in | `100000` coins / `10000` tokens |
+
 Usage notes:
 
 - This account is intentionally limited to localhost/private-LAN usage.
 - Deck ownership and deck pool are reset to empty on each regression sign-in.
 - Wallet is re-seeded on each regression sign-in to guarantee full deck-purchase test coverage.
+- Local admin sign-in seeds owned/active deck lists from all theme decks on every sign-in.
 - On public origins (for example GitHub Pages), use normal Firebase auth accounts.
 
 ### 7.1 Session Header
