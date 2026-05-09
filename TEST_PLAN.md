@@ -88,6 +88,7 @@ project (CC BY-NC-SA 4.0).
 | LG-20 | Local admin account sign-in | `admin@test.local` / `Admin123!` signs in on localhost/LAN with seeded admin profile | ⬜ |
 | LG-21 | Cloud admin designation on GitHub Pages | User with `users/{uid}.isAdmin = true` gets admin access and top bar shows admin state | ⬜ |
 | LG-22 | Cloud self-promotion blocked by rules | Auth user cannot create or update `users/{uid}.isAdmin` from client SDK | ⬜ |
+| LG-23 | Admin section visibility | Admin users see an Admin menu card and can open the Admin screen from main menu | ⬜ |
 
 ### 3.2 Room Management
 

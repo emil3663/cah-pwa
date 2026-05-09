@@ -29,7 +29,7 @@ const FREE_STARTER_DECK_ID = 'general-classic';
 const CUSTOM_DECK_PREFIX = 'custom-';
 const CUSTOM_DECK_CATEGORY_ID = 'custom-player';
 const MIN_CUSTOM_DECK_CARDS = 20;
-const APP_UPDATE_TAG = '2026.05.09-r10';
+const APP_UPDATE_TAG = '2026.05.09-r11';
 const REGRESSION_TEST_LOGIN = {
   email: 'regression@test.local',
   password: 'Regression123!',
@@ -243,7 +243,10 @@ function applyBuildTag() {
 function updateAuthTopbar(user) {
   const authState = document.getElementById('authStateText');
   const signOutBtn = document.getElementById('btnSignOut');
-  if (!authState || !signOutBtn) return;
+  if (!authState || !signOutBtn) {
+    updateAdminUi(user);
+    return;
+  }
 
   if (user) {
     const adminSuffix = isAdminUser() ? ' (Admin)' : '';
@@ -253,6 +256,38 @@ function updateAuthTopbar(user) {
     authState.textContent = 'Not signed in';
     signOutBtn.disabled = true;
   }
+
+  updateAdminUi(user);
+}
+
+function renderAdminScreen() {
+  const summary = document.getElementById('adminSummary');
+  const identity = document.getElementById('adminIdentity');
+  const roleSource = document.getElementById('adminRoleSource');
+  if (!summary || !identity || !roleSource) return;
+
+  if (!isAdminUser()) {
+    summary.textContent = 'Admin access is not enabled for this account.';
+    identity.textContent = me?.email || me?.name || 'Unknown user';
+    roleSource.textContent = 'Not an admin profile';
+    return;
+  }
+
+  const isLocalAdmin = isLocalAdminSession && me?.id === ADMIN_TEST_LOGIN.id;
+  summary.textContent = 'Admin access is enabled.';
+  identity.textContent = `${me?.name || 'Player'} (${me?.email || 'no email'})`;
+  roleSource.textContent = isLocalAdmin
+    ? 'Local admin test account'
+    : 'Cloud admin profile (users/{uid}.isAdmin = true)';
+}
+
+function updateAdminUi(user) {
+  const adminBtn = document.getElementById('btnAdmin');
+  if (!adminBtn) return;
+
+  const canSeeAdmin = Boolean(user) && isAdminUser();
+  adminBtn.hidden = !canSeeAdmin;
+  if (canSeeAdmin) renderAdminScreen();
 }
 
 function makeDefaultProfile(name, id, email = '') {
@@ -1587,7 +1622,7 @@ updateAuthTopbar(getEffectiveAuthUser());
 if (window.firebaseAuth) {
   window.firebaseAuth.onAuthStateChanged(async user => {
     if (!user) {
-      if (!isLocalRegressionSession) updateAuthTopbar(null);
+      if (!isLocalRegressionSession && !isLocalAdminSession) updateAuthTopbar(null);
       return;
     }
     try {
@@ -1614,6 +1649,16 @@ document.getElementById('btnFriends').addEventListener('click', () => { showScre
 document.getElementById('btnStats').addEventListener('click', () => { showScreen('stats'); renderStats(); });
 document.getElementById('btnProfile').addEventListener('click', () => { showScreen('stats'); renderStats(); });
 document.getElementById('btnDecks').addEventListener('click', () => openDeckStore());
+document.getElementById('btnAdmin').addEventListener('click', () => {
+  if (!isAdminUser()) return;
+  renderAdminScreen();
+  showScreen('admin');
+});
+document.getElementById('btnAdminOpenDecks').addEventListener('click', () => openDeckStore());
+document.getElementById('btnAdminOpenStats').addEventListener('click', () => {
+  showScreen('stats');
+  renderStats();
+});
 
 /* ─── Create Room ─── */
 let pendingCreateRoomData = null;

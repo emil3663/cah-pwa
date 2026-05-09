@@ -8,7 +8,7 @@
   <link rel="manifest" href="manifest.json" />
   <meta name="theme-color" content="#111111" />
   <link rel="apple-touch-icon" href="icons/icon-192.png" />
-  <link rel="stylesheet" href="style.css?v=29" />
+  <link rel="stylesheet" href="style.css?v=30" />
 </head>
 <body>
 
@@ -65,6 +65,31 @@
           <span class="mc-icon">🗂️</span>
           <span class="mc-label">Decks</span>
         </button>
+        <button class="menu-card" id="btnAdmin" hidden>
+          <span class="mc-icon">🛡️</span>
+          <span class="mc-label">Admin</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ SCREEN: Admin ═══ -->
+  <div id="screen-admin" class="screen">
+    <nav class="topbar"><button class="btn-ghost back" data-target="menu">← Back</button><span>Admin</span></nav>
+    <div class="form-body">
+      <label>Admin Access</label>
+      <div id="adminSummary">Loading admin status...</div>
+
+      <label>Identity</label>
+      <div id="adminIdentity"></div>
+
+      <label>Role Source</label>
+      <div id="adminRoleSource"></div>
+
+      <label>Quick Actions</label>
+      <div class="row">
+        <button class="btn-ghost" id="btnAdminOpenDecks">Open Deck Store</button>
+        <button class="btn-ghost" id="btnAdminOpenStats">Open Stats</button>
       </div>
     </div>
   </div>
@@ -325,11 +350,11 @@
     window.firebaseAuth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(() => {});
   </script>
   
-  <script src="cards.js?v=29"></script>
-  <script src="app.js?v=29"></script>
+  <script src="cards.js?v=30"></script>
+  <script src="app.js?v=30"></script>
   <script>
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('service-worker.js?v=29').then(reg => {
+      navigator.serviceWorker.register('service-worker.js?v=30').then(reg => {
         reg.update().catch(() => {});
       }).catch(() => {});
 
