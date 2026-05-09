@@ -1,12 +1,12 @@
 /* ===== Cards Against Humanity — Service Worker ===== */
 
-const CACHE_NAME = 'cah-v24';
+const CACHE_NAME = 'cah-v25';
 const ASSETS = [
   './',
   './index.html',
-  './style.css?v=24',
-  './app.js?v=24',
-  './cards.js?v=24',
+  './style.css?v=25',
+  './app.js?v=25',
+  './cards.js?v=25',
   './manifest.json',
   './icons/bot-skeeter.svg',
   './icons/bot-sally.svg',
@@ -36,7 +36,24 @@ self.addEventListener('activate', event => {
 });
 
 self.addEventListener('fetch', event => {
+  const req = event.request;
+
+  // Always try network first for app-shell navigations so installed launches
+  // pick up new HTML and SW updates quickly.
+  if (req.mode === 'navigate') {
+    event.respondWith(
+      fetch(req)
+        .then(networkRes => {
+          const clone = networkRes.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put('./index.html', clone));
+          return networkRes;
+        })
+        .catch(() => caches.match(req).then(hit => hit || caches.match('./index.html')))
+    );
+    return;
+  }
+
   event.respondWith(
-    caches.match(event.request).then(cached => cached || fetch(event.request))
+    caches.match(req).then(cached => cached || fetch(req))
   );
 });
