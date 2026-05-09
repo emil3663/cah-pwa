@@ -165,6 +165,7 @@ project (CC BY-NC-SA 4.0).
 | GP-19 | Reroll consumes coins | Each reroll deducts 3 coins | ⬜ |
 | GP-20 | Reroll round limit | Max 2 rerolls per round enforced | ⬜ |
 | GP-21 | Reroll game limit | Max 5 rerolls per game enforced | ⬜ |
+| GP-22 | Mixed deck pool draw | With 2+ decks in user pool, opening hand includes cards from multiple selected decks over repeated rounds | ⬜ |
 
 ### 3.5 Game Over
 
@@ -204,7 +205,7 @@ project (CC BY-NC-SA 4.0).
 | DE-04 | General deck pricing | General tiers cost 30/40/50 tokens | ⬜ |
 | DE-05 | Special deck pricing | Special tiers cost 20/40/60 tokens | ⬜ |
 | DE-06 | Coin equivalent purchases | Deck purchase works with token equivalent (1 token = 10 coins) | ⬜ |
-| DE-07 | Active deck persistence | Selected deck remains active after reload | ⬜ |
+| DE-07 | Deck pool persistence | Selected deck pool remains intact after reload | ⬜ |
 | DE-08 | Deck artwork render | Each deck card displays its themed image | ⬜ |
 | DE-09 | Source pack label render | Deck cards display json-against-humanity source pack names | ⬜ |
 | DE-10 | Cover fallback render | Decks without image path render generated line-art covers | ⬜ |
@@ -218,19 +219,20 @@ project (CC BY-NC-SA 4.0).
 | DE-18 | Default expansion state | Core and Expansions is expanded by default; all other categories start collapsed | ⬜ |
 | DE-19 | Names-only list mode | Expanded category shows deck names list, not full detail cards | ⬜ |
 | DE-20 | Selection-driven preview | Deck image/details render only after selecting a deck name | ⬜ |
-| DE-21 | Preview action flow | Claim/equip/add-remove-cart actions work from selected preview panel | ⬜ |
+| DE-21 | Preview action flow | Claim/pool-add/remove/add-remove-cart actions work from selected preview panel | ⬜ |
 | DE-22 | Category coverage | Store contains 10 categories with 10 decks each | ⬜ |
 | DE-23 | NSFW category visibility | Dark and NSFW grouping is present and collapsible in store | ⬜ |
 | DE-24 | Custom pack import (line mode) | One-card-per-line input saves custom deck when >=20 cards | ✅ |
-| DE-25 | Custom pack import (JSON array) | JSON string array input saves deck and equips it automatically | ⬜ |
+| DE-25 | Custom pack import (JSON array) | JSON string array input saves deck and adds it to deck pool automatically | ⬜ |
 | DE-26 | Custom pack import (JSON object) | Object with name/description/whiteCards is parsed and saved | ⬜ |
 | DE-27 | Custom pack validation floor | Import with <20 cards is rejected with clear message | ⬜ |
 | DE-28 | Custom pack ownership persistence | Imported deck remains owned and selectable after reload | ✅ |
 | DE-29 | Custom pack gameplay draw | Starting a game with custom deck yields cards from imported card list | ✅ |
-| DE-30 | Custom pack delete | Deleting custom deck removes ownership and falls back active deck to starter if needed | ⬜ |
+| DE-30 | Custom pack delete | Deleting custom deck removes ownership and falls back pool to starter if needed | ⬜ |
 | DE-31 | Store hides owned purchased decks by default | Purchased non-custom decks are not shown in deck category lists until "Show Owned Decks" is enabled | ⬜ |
 | DE-32 | Store owned toggle override | Toggling "Show Owned Decks" reveals purchased decks and toggling off hides them again | ⬜ |
 | DE-33 | Profile deck inspector card visibility | Stats/Profile screen shows owned decks and allows expanding each deck to view included card texts | ⬜ |
+| DE-34 | Multi-deck pool toggle | Owned decks can be independently added/removed from deck pool and pool count updates | ⬜ |
 
 ### 3.10 Room NSFW Toggle
 
@@ -238,8 +240,8 @@ project (CC BY-NC-SA 4.0).
 |----|------|-----------------|--------|
 | NS-01 | Create room with NSFW toggle OFF | Room mode label shows NSFW Off | ⬜ |
 | NS-02 | Create room with NSFW toggle ON | Room mode label shows NSFW On | ⬜ |
-| NS-03 | Start game with NSFW OFF + NSFW active deck | Start is blocked and user is prompted to switch decks | ⬜ |
-| NS-04 | Join room with NSFW OFF + NSFW active deck | Join is blocked with explanatory alert | ⬜ |
+| NS-03 | Start game with NSFW OFF + NSFW-only pool | Start is blocked and user is prompted to add a non-NSFW deck to pool | ⬜ |
+| NS-04 | Join room with NSFW OFF + NSFW-only pool | Join is blocked with explanatory alert | ⬜ |
 | NS-05 | Bot deck assignment in NSFW OFF rooms | Bots fall back to non-NSFW decks | ⬜ |
 
 ### 3.6 Friends & Stats

@@ -26,7 +26,7 @@ const FREE_STARTER_DECK_ID = 'general-classic';
 const CUSTOM_DECK_PREFIX = 'custom-';
 const CUSTOM_DECK_CATEGORY_ID = 'custom-player';
 const MIN_CUSTOM_DECK_CARDS = 20;
-const APP_UPDATE_TAG = '2026.05.09-r6';
+const APP_UPDATE_TAG = '2026.05.09-r7';
 const REGRESSION_TEST_LOGIN = {
   email: 'regression@test.local',
   password: 'Regression123!',
@@ -199,6 +199,7 @@ function makeDefaultProfile(name, id, email = '') {
     gameHistory: [],
     deckProgress: {
       ownedDeckIds: [],
+      activeDeckIds: [],
       activeDeckId: null,
       freeStarterClaimed: false,
       featuredSpecialClaimed: false
@@ -209,9 +210,13 @@ function makeDefaultProfile(name, id, email = '') {
 function normalizeDeckProgress(dp) {
   const src = dp || {};
   const owned = Array.isArray(src.ownedDeckIds) ? src.ownedDeckIds : [];
+  const activeIds = Array.isArray(src.activeDeckIds) ? src.activeDeckIds.filter(Boolean) : [];
+  const legacyActive = src.activeDeckId || null;
+  const mergedActive = [...new Set([...activeIds, ...(legacyActive ? [legacyActive] : [])])];
   return {
     ownedDeckIds: [...new Set(owned.filter(Boolean))],
-    activeDeckId: src.activeDeckId || null,
+    activeDeckIds: mergedActive,
+    activeDeckId: mergedActive[0] || legacyActive,
     freeStarterClaimed: Boolean(src.freeStarterClaimed),
     featuredSpecialClaimed: Boolean(src.featuredSpecialClaimed)
   };
@@ -263,10 +268,13 @@ function mergeProfiles(baseProfile, legacyProfile) {
     const a = normalizeDeckProgress(baseProfile.deckProgress);
     const b = normalizeDeckProgress(legacyProfile.deckProgress);
     const owned = [...new Set([...(a.ownedDeckIds || []), ...(b.ownedDeckIds || [])])];
-    const candidate = a.activeDeckId || b.activeDeckId || null;
+    const candidatePool = [...new Set([...(a.activeDeckIds || []), ...(b.activeDeckIds || [])])];
+    const filteredPool = candidatePool.filter(id => owned.includes(id));
+    const candidate = filteredPool[0] || a.activeDeckId || b.activeDeckId || null;
     return {
       ownedDeckIds: owned,
-      activeDeckId: candidate && owned.includes(candidate) ? candidate : (candidate || null),
+      activeDeckIds: filteredPool,
+      activeDeckId: candidate && owned.includes(candidate) ? candidate : (filteredPool[0] || null),
       freeStarterClaimed: a.freeStarterClaimed || b.freeStarterClaimed,
       featuredSpecialClaimed: a.featuredSpecialClaimed || b.featuredSpecialClaimed
     };
@@ -344,6 +352,7 @@ async function syncProfileToCloud(profile) {
     economy: profile.economy || { coins: STARTER_COINS, tokens: STARTER_TOKENS },
     deckProgress: profile.deckProgress || {
       ownedDeckIds: [],
+      activeDeckIds: [],
       activeDeckId: null,
       freeStarterClaimed: false,
       featuredSpecialClaimed: false
@@ -611,7 +620,7 @@ function startGameFromServer(data) {
     gameState.rerollsGameUsed[p.id] = 0;
     const deckId = p.isBot
       ? chooseDeckForBot(p, data.allowNsfw !== false)
-      : (me.deckProgress.activeDeckId || FREE_STARTER_DECK_ID);
+      : getPlayableDeckPoolForRoom(data.allowNsfw !== false);
     gameState.playerDecks[p.id] = deckId;
     gameState.drawPiles[p.id] = createDeckPile(deckId);
     gameState.hands[p.id] = [];
@@ -743,21 +752,22 @@ function initPlayerProfile() {
   me.economy = me.economy || { coins: STARTER_COINS, tokens: STARTER_TOKENS };
   me.gameHistory = Array.isArray(me.gameHistory) ? me.gameHistory : [];
   me.customDecks = normalizeCustomDecks(me.customDecks || []);
-  me.deckProgress = me.deckProgress || {
+  me.deckProgress = normalizeDeckProgress(me.deckProgress || {
     ownedDeckIds: [],
+    activeDeckIds: [],
     activeDeckId: null,
     freeStarterClaimed: false,
     featuredSpecialClaimed: false
-  };
+  });
 
   me.deckProgress.ownedDeckIds = Array.isArray(me.deckProgress.ownedDeckIds) ? me.deckProgress.ownedDeckIds : [];
   me.customDecks.forEach(deck => {
     if (!me.deckProgress.ownedDeckIds.includes(deck.id)) me.deckProgress.ownedDeckIds.push(deck.id);
   });
 
-  if (me.deckProgress.activeDeckId && !ownsDeck(me.deckProgress.activeDeckId)) {
-    me.deckProgress.activeDeckId = null;
-  }
+  const dedupedPool = [...new Set((me.deckProgress.activeDeckIds || []).filter(id => ownsDeck(id)))];
+  me.deckProgress.activeDeckIds = dedupedPool;
+  me.deckProgress.activeDeckId = dedupedPool[0] || null;
 
   save('cah_player', me);
 }
@@ -807,9 +817,32 @@ function canUseDeckInRoom(deckId, allowNsfw) {
   return !isDeckNsfw(deckId);
 }
 
+function getSelectedDeckPool() {
+  const profile = me?.deckProgress || {};
+  const activePool = Array.isArray(profile.activeDeckIds) ? profile.activeDeckIds : [];
+  const legacy = profile.activeDeckId ? [profile.activeDeckId] : [];
+  const combined = [...new Set([...activePool, ...legacy])];
+  return combined.filter(id => ownsDeck(id));
+}
+
+function getPlayableDeckPoolForRoom(allowNsfw) {
+  return getSelectedDeckPool().filter(deckId => canUseDeckInRoom(deckId, allowNsfw));
+}
+
+function chooseDeckFromPool(deckIds) {
+  const pool = Array.isArray(deckIds) ? deckIds.filter(Boolean) : [];
+  if (!pool.length) return FREE_STARTER_DECK_ID;
+  return pool[Math.floor(Math.random() * pool.length)] || FREE_STARTER_DECK_ID;
+}
+
+function hasCompatibleDeckForRoom(allowNsfw) {
+  if (isAdminUser()) return true;
+  return getPlayableDeckPoolForRoom(allowNsfw).length > 0;
+}
+
 function hasActiveDeck() {
   if (isAdminUser()) return true;
-  return Boolean(me?.deckProgress?.activeDeckId && ownsDeck(me.deckProgress.activeDeckId));
+  return getSelectedDeckPool().length > 0;
 }
 
 function getDeckCardTexts(deck) {
@@ -865,13 +898,14 @@ function renderDeckStore(message = '') {
   const allDecks = getAllDecks();
 
   const mustClaim = !isAdminUser() && (!me.deckProgress.freeStarterClaimed || !hasActiveDeck());
+  const selectedPoolCount = getSelectedDeckPool().length;
   const baseMessage = message || (mustClaim
-    ? 'Claim your free first deck and select an active deck before creating or joining games.'
+    ? 'Claim your free first deck and add at least one deck to your play pool before creating or joining games.'
     : 'Browse by category. Expand groups, select decks, then complete your purchase in checkout. You can also import custom packs.');
 
   msgEl.innerHTML = `
     <div class="deck-store-message-row">
-      <span>${escHtml(baseMessage)}</span>
+      <span>${escHtml(baseMessage)}${selectedPoolCount ? ` · Deck pool: ${selectedPoolCount}` : ''}</span>
       <button class="btn-ghost sm" onclick="toggleOwnedDeckVisibility()">${showOwnedDecksInStore ? 'Hide Owned Decks' : 'Show Owned Decks'}</button>
     </div>
   `;
@@ -918,7 +952,7 @@ window.toggleOwnedDeckVisibility = function() {
 
 function renderDeckPreviewCard(deck, category) {
   const owned = ownsDeck(deck.id);
-  const selected = me.deckProgress.activeDeckId === deck.id;
+  const selected = getSelectedDeckPool().includes(deck.id);
   const isCustom = deck.categoryId === CUSTOM_DECK_CATEGORY_ID;
   const cardCount = Array.isArray(deck.whiteCards)
     ? deck.whiteCards.length
@@ -934,12 +968,12 @@ function renderDeckPreviewCard(deck, category) {
     actionHtml = `<button class="btn-white sm" onclick="claimStarterDeck()">Claim Free Starter Deck</button>`;
   } else if (isCustom) {
     actionHtml = selected
-      ? `<span class="deck-tag-selected">Equipped</span><button class="btn-ghost sm" onclick="deleteCustomDeck('${deck.id}')">Delete</button>`
-      : `<button class="btn-ghost sm" onclick="selectDeck('${deck.id}')">Equip Deck</button><button class="btn-ghost sm" onclick="deleteCustomDeck('${deck.id}')">Delete</button>`;
+      ? `<span class="deck-tag-selected">In Deck Pool</span><button class="btn-ghost sm" onclick="selectDeck('${deck.id}')">Remove</button><button class="btn-ghost sm" onclick="deleteCustomDeck('${deck.id}')">Delete</button>`
+      : `<button class="btn-ghost sm" onclick="selectDeck('${deck.id}')">Add to Pool</button><button class="btn-ghost sm" onclick="deleteCustomDeck('${deck.id}')">Delete</button>`;
   } else if (owned) {
     actionHtml = selected
-      ? '<span class="deck-tag-selected">Equipped</span>'
-      : `<button class="btn-ghost sm" onclick="selectDeck('${deck.id}')">Equip Deck</button>`;
+      ? `<span class="deck-tag-selected">In Deck Pool</span><button class="btn-ghost sm" onclick="selectDeck('${deck.id}')">Remove</button>`
+      : `<button class="btn-ghost sm" onclick="selectDeck('${deck.id}')">Add to Pool</button>`;
   } else {
     actionHtml = `<button class="${isInCart ? 'btn-ghost' : 'btn-white'} sm" onclick="toggleDeckInCart('${deck.id}')">${isInCart ? 'Remove' : 'Select'}</button>`;
   }
@@ -1076,7 +1110,10 @@ function confirmCheckoutPurchase() {
     purchasedNames.push(deck.name);
     deckCart.delete(deck.id);
 
-    if (!me.deckProgress.activeDeckId) me.deckProgress.activeDeckId = deck.id;
+    if (!getSelectedDeckPool().length) {
+      me.deckProgress.activeDeckIds = [deck.id];
+      me.deckProgress.activeDeckId = deck.id;
+    }
     if (deck.id === FEATURED_SPECIAL_DECK_ID && !me.deckProgress.featuredSpecialClaimed) {
       me.deckProgress.featuredSpecialClaimed = true;
     }
@@ -1172,16 +1209,22 @@ window.claimStarterDeck = function() {
   if (me.deckProgress.freeStarterClaimed) return;
   me.deckProgress.freeStarterClaimed = true;
   if (!ownsDeck(FREE_STARTER_DECK_ID)) me.deckProgress.ownedDeckIds.push(FREE_STARTER_DECK_ID);
+  me.deckProgress.activeDeckIds = [FREE_STARTER_DECK_ID];
   me.deckProgress.activeDeckId = FREE_STARTER_DECK_ID;
   save('cah_player', me);
-  renderDeckStore('Starter deck claimed. You can now create or join games.');
+  renderDeckStore('Starter deck claimed and added to your deck pool. You can now create or join games.');
 };
 
 window.selectDeck = function(deckId) {
   if (!ownsDeck(deckId)) return;
-  me.deckProgress.activeDeckId = deckId;
+  const pool = new Set(getSelectedDeckPool());
+  if (pool.has(deckId)) pool.delete(deckId);
+  else pool.add(deckId);
+
+  me.deckProgress.activeDeckIds = [...pool];
+  me.deckProgress.activeDeckId = me.deckProgress.activeDeckIds[0] || null;
   save('cah_player', me);
-  renderDeckStore('Active deck updated.');
+  renderDeckStore('Deck pool updated.');
 };
 
 function parseCustomCardsInput(raw) {
@@ -1263,7 +1306,8 @@ function createOrImportCustomDeck() {
 
   me.customDecks = normalizeCustomDecks([...(me.customDecks || []), deck]);
   me.deckProgress.ownedDeckIds = [...new Set([...(me.deckProgress.ownedDeckIds || []), deckId])];
-  me.deckProgress.activeDeckId = deckId;
+  me.deckProgress.activeDeckIds = [...new Set([...(me.deckProgress.activeDeckIds || []), deckId])];
+  me.deckProgress.activeDeckId = me.deckProgress.activeDeckIds[0] || deckId;
   save('cah_player', me);
 
   closeDeckImportModal();
@@ -1279,9 +1323,11 @@ window.deleteCustomDeck = function(deckId) {
 
   me.customDecks = (me.customDecks || []).filter(d => d.id !== deckId);
   me.deckProgress.ownedDeckIds = (me.deckProgress.ownedDeckIds || []).filter(id => id !== deckId);
-  if (me.deckProgress.activeDeckId === deckId) {
-    me.deckProgress.activeDeckId = FREE_STARTER_DECK_ID;
+  me.deckProgress.activeDeckIds = (me.deckProgress.activeDeckIds || []).filter(id => id !== deckId);
+  if (!me.deckProgress.activeDeckIds.length && ownsDeck(FREE_STARTER_DECK_ID)) {
+    me.deckProgress.activeDeckIds = [FREE_STARTER_DECK_ID];
   }
+  me.deckProgress.activeDeckId = me.deckProgress.activeDeckIds[0] || null;
   save('cah_player', me);
 
   initDeckCategoryCollapseState();
@@ -1303,7 +1349,7 @@ document.getElementById('deckImportModal').addEventListener('click', (e) => {
 
 function requireDeckAccess(message) {
   if (hasActiveDeck()) return true;
-  openDeckStore(message || 'Select a deck first.');
+  openDeckStore(message || 'Add at least one deck to your pool first.');
   return false;
 }
 
@@ -1461,11 +1507,11 @@ if (window.firebaseAuth) {
 
 /* ─── Menu ─── */
 document.getElementById('btnCreateRoom').addEventListener('click', () => {
-  if (!requireDeckAccess('Claim or select a deck before creating rooms.')) return;
+  if (!requireDeckAccess('Claim or add at least one deck to your pool before creating rooms.')) return;
   showScreen('create');
 });
 document.getElementById('btnJoinRoom').addEventListener('click', () => {
-  if (!requireDeckAccess('Claim or select a deck before joining rooms.')) return;
+  if (!requireDeckAccess('Claim or add at least one deck to your pool before joining rooms.')) return;
   showScreen('join');
   renderRoomList();
   if (useFirestoreRoomSync()) subscribeOpenRooms();
@@ -1479,7 +1525,7 @@ document.getElementById('btnDecks').addEventListener('click', () => openDeckStor
 let pendingCreateRoomData = null;
 
 document.getElementById('btnStartRoom').addEventListener('click', async () => {
-  if (!requireDeckAccess('You must claim/select a deck before creating rooms.')) return;
+  if (!requireDeckAccess('You must claim/add at least one deck to your pool before creating rooms.')) return;
 
   const roomName = document.getElementById('roomName').value.trim() || me.name + "'s Room";
   const gameMode = document.querySelector('input[name="gameMode"]:checked').value;
@@ -1542,7 +1588,7 @@ document.getElementById('joinCode').addEventListener('keydown', e => {
 });
 
 async function requestJoinRoom(code) {
-  if (!requireDeckAccess('Claim/select a deck before joining rooms.')) return;
+  if (!requireDeckAccess('Claim/add at least one deck to your pool before joining rooms.')) return;
 
   let room = null;
   if (useFirestoreRoomSync()) {
@@ -1555,9 +1601,8 @@ async function requestJoinRoom(code) {
   if (room.status !== 'lobby') return alert('That game has already started.');
   if (room.players.length >= room.maxPlayers) return alert('Room is full!');
 
-  const myDeckId = me?.deckProgress?.activeDeckId;
-  if (!canUseDeckInRoom(myDeckId, room.allowNsfw !== false)) {
-    return alert('This room has NSFW decks disabled. Please equip a non-NSFW deck first.');
+  if (!hasCompatibleDeckForRoom(room.allowNsfw !== false)) {
+    return alert('This room has NSFW decks disabled. Add at least one non-NSFW deck to your deck pool first.');
   }
 
   if (room.players.find(p => p.id === me.id)) {
@@ -1684,13 +1729,12 @@ function refreshLobbyPlayers(room) {
 }
 
 document.getElementById('btnStartGame').addEventListener('click', async () => {
-  if (!requireDeckAccess('Select an active deck before starting the game.')) return;
+  if (!requireDeckAccess('Add at least one deck to your pool before starting the game.')) return;
   if (!currentRoom) return;
 
-  const myDeckId = me?.deckProgress?.activeDeckId;
-  if (!canUseDeckInRoom(myDeckId, currentRoom.allowNsfw !== false)) {
-    alert('NSFW is disabled for this room. Equip a non-NSFW deck before starting.');
-    openDeckStore('Choose a non-NSFW deck to continue.');
+  if (!hasCompatibleDeckForRoom(currentRoom.allowNsfw !== false)) {
+    alert('NSFW is disabled for this room. Add at least one non-NSFW deck to your pool before starting.');
+    openDeckStore('Choose at least one non-NSFW deck for your pool to continue.');
     return;
   }
 
@@ -1751,7 +1795,7 @@ function startGame(room) {
 
     const deckId = p.isBot
       ? chooseDeckForBot(p, room.allowNsfw !== false)
-      : (me.deckProgress.activeDeckId || FREE_STARTER_DECK_ID);
+      : getPlayableDeckPoolForRoom(room.allowNsfw !== false);
     gameState.playerDecks[p.id] = deckId;
     gameState.drawPiles[p.id] = createDeckPile(deckId);
 
@@ -1764,14 +1808,21 @@ function startGame(room) {
   startRound();
 }
 
-function createDeckPile(deckId) {
+function createDeckPile(deckInput) {
   const fallbackDeck = getDeckById(FREE_STARTER_DECK_ID) || getAllDecks()[0];
-  const deck = getDeckById(deckId) || fallbackDeck;
-  if (!deck) return [];
+  const selectedIds = Array.isArray(deckInput)
+    ? deckInput
+    : (deckInput ? [deckInput] : []);
+  const selectedDecks = selectedIds.map(getDeckById).filter(Boolean);
+  const decks = selectedDecks.length ? selectedDecks : (fallbackDeck ? [fallbackDeck] : []);
+  if (!decks.length) return [];
 
-  const base = Array.isArray(deck.whiteCards)
-    ? deck.whiteCards.map((text, idx) => ({ baseId: idx, text: String(text || '').trim() }))
-    : (deck.whiteCardIndexes || []).map(idx => ({ baseId: idx, text: CAH_WHITE_CARDS[idx] || '' }));
+  const base = decks.flatMap(deck => {
+    if (Array.isArray(deck.whiteCards)) {
+      return deck.whiteCards.map((text, idx) => ({ baseId: `${deck.id}-${idx}`, text: String(text || '').trim() }));
+    }
+    return (deck.whiteCardIndexes || []).map(idx => ({ baseId: `${deck.id}-${idx}`, text: CAH_WHITE_CARDS[idx] || '' }));
+  }).filter(entry => String(entry.text || '').trim());
 
   const expanded = [];
   for (let i = 0; i < 4; i++) expanded.push(...base);
@@ -2533,12 +2584,12 @@ function renderStats() {
     ? ownedDecks.map(deck => {
       const category = getDeckCategoryMeta(deck.categoryId);
       const cards = getDeckCardTexts(deck);
-      const isActive = me?.deckProgress?.activeDeckId === deck.id;
+      const inPool = getSelectedDeckPool().includes(deck.id);
 
       return `<details class="owned-deck-item">
         <summary>
           <span class="owned-deck-name">${escHtml(deck.name)}</span>
-          <span class="owned-deck-meta">${cards.length} cards${category ? ` · ${escHtml(category.name)}` : ''}${isActive ? ' · Equipped' : ''}</span>
+          <span class="owned-deck-meta">${cards.length} cards${category ? ` · ${escHtml(category.name)}` : ''}${inPool ? ' · In Deck Pool' : ''}</span>
         </summary>
         <div class="owned-deck-cards-wrap">
           ${cards.length
