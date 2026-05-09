@@ -29,7 +29,7 @@ const FREE_STARTER_DECK_ID = 'general-classic';
 const CUSTOM_DECK_PREFIX = 'custom-';
 const CUSTOM_DECK_CATEGORY_ID = 'custom-player';
 const MIN_CUSTOM_DECK_CARDS = 20;
-const APP_UPDATE_TAG = '2026.05.09-r9';
+const APP_UPDATE_TAG = '2026.05.09-r10';
 const REGRESSION_TEST_LOGIN = {
   email: 'regression@test.local',
   password: 'Regression123!',
@@ -222,7 +222,8 @@ function getAdminProfile() {
     ...seeded,
     id: ADMIN_TEST_LOGIN.id,
     name: ADMIN_TEST_LOGIN.name,
-    email: ADMIN_TEST_LOGIN.email
+    email: ADMIN_TEST_LOGIN.email,
+    isAdmin: true
   };
 }
 
@@ -245,7 +246,8 @@ function updateAuthTopbar(user) {
   if (!authState || !signOutBtn) return;
 
   if (user) {
-    authState.textContent = `Signed in as ${user.email || me?.name || 'Player'}`;
+    const adminSuffix = isAdminUser() ? ' (Admin)' : '';
+    authState.textContent = `Signed in as ${user.email || me?.name || 'Player'}${adminSuffix}`;
     signOutBtn.disabled = false;
   } else {
     authState.textContent = 'Not signed in';
@@ -258,6 +260,7 @@ function makeDefaultProfile(name, id, email = '') {
     id,
     name,
     email,
+    isAdmin: false,
     stats: { gamesPlayed: 0, gamesWon: 0, roundsWon: 0 },
     economy: { coins: STARTER_COINS, tokens: STARTER_TOKENS },
     customDecks: [],
@@ -401,7 +404,8 @@ async function loadProfileFromCloud(user, fallbackName) {
     ...data,
     id: user.uid,
     name: String(data.username || data.name || fallbackName || 'Player'),
-    email: user.email || data.email || ''
+    email: user.email || data.email || '',
+    isAdmin: Boolean(data.isAdmin)
   };
 }
 
@@ -857,7 +861,8 @@ function getDeckCoinCost(deck) {
 }
 
 function isAdminUser() {
-  return String(me?.name || '').trim().toLowerCase() === 'admin';
+  if (isLocalAdminSession && me?.id === ADMIN_TEST_LOGIN.id) return true;
+  return Boolean(me?.isAdmin);
 }
 
 function ownsDeck(deckId) {

@@ -8,7 +8,7 @@
   <link rel="manifest" href="manifest.json" />
   <meta name="theme-color" content="#111111" />
   <link rel="apple-touch-icon" href="icons/icon-192.png" />
-  <link rel="stylesheet" href="style.css?v=28" />
+  <link rel="stylesheet" href="style.css?v=29" />
 </head>
 <body>
 
@@ -325,11 +325,11 @@
     window.firebaseAuth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(() => {});
   </script>
   
-  <script src="cards.js?v=28"></script>
-  <script src="app.js?v=28"></script>
+  <script src="cards.js?v=29"></script>
+  <script src="app.js?v=29"></script>
   <script>
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('service-worker.js?v=28').then(reg => {
+      navigator.serviceWorker.register('service-worker.js?v=29').then(reg => {
         reg.update().catch(() => {});
       }).catch(() => {});
 

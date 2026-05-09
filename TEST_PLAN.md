@@ -86,6 +86,8 @@ project (CC BY-NC-SA 4.0).
 | LG-18 | Local regression account sign-in | `regression@test.local` / `Regression123!` signs in on localhost/LAN without Firebase registration | ⬜ |
 | LG-19 | Login build/update tag visibility | Landing page shows visible build tag before authentication | ⬜ |
 | LG-20 | Local admin account sign-in | `admin@test.local` / `Admin123!` signs in on localhost/LAN with seeded admin profile | ⬜ |
+| LG-21 | Cloud admin designation on GitHub Pages | User with `users/{uid}.isAdmin = true` gets admin access and top bar shows admin state | ⬜ |
+| LG-22 | Cloud self-promotion blocked by rules | Auth user cannot create or update `users/{uid}.isAdmin` from client SDK | ⬜ |
 
 ### 3.2 Room Management
 
