@@ -221,6 +221,9 @@ project (CC BY-NC-SA 4.0).
 | DE-28 | Custom pack ownership persistence | Imported deck remains owned and selectable after reload | ✅ |
 | DE-29 | Custom pack gameplay draw | Starting a game with custom deck yields cards from imported card list | ✅ |
 | DE-30 | Custom pack delete | Deleting custom deck removes ownership and falls back active deck to starter if needed | ⬜ |
+| DE-31 | Store hides owned purchased decks by default | Purchased non-custom decks are not shown in deck category lists until "Show Owned Decks" is enabled | ⬜ |
+| DE-32 | Store owned toggle override | Toggling "Show Owned Decks" reveals purchased decks and toggling off hides them again | ⬜ |
+| DE-33 | Profile deck inspector card visibility | Stats/Profile screen shows owned decks and allows expanding each deck to view included card texts | ⬜ |
 
 ### 3.10 Room NSFW Toggle
 

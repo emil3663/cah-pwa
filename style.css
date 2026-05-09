@@ -216,6 +216,14 @@ button:hover { opacity: 0.85; transform: translateY(-1px); }
   font-size: 0.85rem;
 }
 
+.deck-store-message-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
 .deck-store-list {
   display: flex;
   flex-direction: column;
@@ -728,6 +736,59 @@ button:hover { opacity: 0.85; transform: translateY(-1px); }
   border: 1px solid var(--border);
   border-radius: 12px;
   padding: 12px 16px;
+}
+
+.owned-deck-item {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 12px;
+  background: #232323;
+}
+
+.owned-deck-item + .owned-deck-item {
+  margin-top: 8px;
+}
+
+.owned-deck-item summary {
+  list-style: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.owned-deck-item summary::-webkit-details-marker {
+  display: none;
+}
+
+.owned-deck-name {
+  font-weight: 800;
+  color: #f2f2f2;
+}
+
+.owned-deck-meta {
+  color: #b4b4b4;
+  font-size: 0.8rem;
+}
+
+.owned-deck-cards-wrap {
+  margin-top: 10px;
+  border-top: 1px solid #3a3a3a;
+  padding-top: 10px;
+}
+
+.owned-deck-cards {
+  margin: 0;
+  padding-left: 18px;
+  max-height: 240px;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  color: #d7d7d7;
+  font-size: 0.84rem;
+  line-height: 1.35;
 }
 .friend-name { font-weight: 700; }
 .friend-status { color: var(--grey); font-size: 0.82rem; }

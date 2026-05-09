@@ -34,6 +34,7 @@ let gameState = null;
 let deckCart = new Set();
 let deckCategoryCollapsed = {};
 let deckPreviewByCategory = {};
+let showOwnedDecksInStore = false;
 let profileSyncTimer = null;
 let authBusy = false;
 let unsubscribeRoomListener = null;
@@ -732,6 +733,22 @@ function hasActiveDeck() {
   return Boolean(me?.deckProgress?.activeDeckId && ownsDeck(me.deckProgress.activeDeckId));
 }
 
+function getDeckCardTexts(deck) {
+  if (!deck) return [];
+  if (Array.isArray(deck.whiteCards)) {
+    return deck.whiteCards.map(text => String(text || '').trim()).filter(Boolean);
+  }
+  return (deck.whiteCardIndexes || [])
+    .map(idx => String(CAH_WHITE_CARDS[idx] || '').trim())
+    .filter(Boolean);
+}
+
+function shouldShowDeckInStore(deck) {
+  if (showOwnedDecksInStore) return true;
+  if (deck.categoryId === CUSTOM_DECK_CATEGORY_ID) return true;
+  return !ownsDeck(deck.id);
+}
+
 function openDeckStore(message = '') {
   deckCart = new Set();
   initDeckCategoryCollapseState();
@@ -769,12 +786,19 @@ function renderDeckStore(message = '') {
   const allDecks = getAllDecks();
 
   const mustClaim = !isAdminUser() && (!me.deckProgress.freeStarterClaimed || !hasActiveDeck());
-  msgEl.textContent = message || (mustClaim
+  const baseMessage = message || (mustClaim
     ? 'Claim your free first deck and select an active deck before creating or joining games.'
     : 'Browse by category. Expand groups, select decks, then complete your purchase in checkout. You can also import custom packs.');
 
+  msgEl.innerHTML = `
+    <div class="deck-store-message-row">
+      <span>${escHtml(baseMessage)}</span>
+      <button class="btn-ghost sm" onclick="toggleOwnedDeckVisibility()">${showOwnedDecksInStore ? 'Hide Owned Decks' : 'Show Owned Decks'}</button>
+    </div>
+  `;
+
   listEl.innerHTML = categories.map(category => {
-    const decksInCategory = allDecks.filter(deck => deck.categoryId === category.id);
+    const decksInCategory = allDecks.filter(deck => deck.categoryId === category.id && shouldShowDeckInStore(deck));
     const collapsed = deckCategoryCollapsed[category.id] !== false;
     const backdrop = getCategoryBackdrop(category.id);
     const selectedDeckId = deckPreviewByCategory[category.id] || '';
@@ -789,11 +813,13 @@ function renderDeckStore(message = '') {
         </button>
         <div class="deck-category-body" style="background-image:url('${escHtml(backdrop)}');">
           <div class="deck-name-list">
-            ${decksInCategory.map(deck => `
+            ${decksInCategory.length
+              ? decksInCategory.map(deck => `
               <button class="deck-name-item ${deck.id === selectedDeckId ? 'active' : ''}" onclick="selectDeckPreview('${category.id}','${deck.id}')">
                 ${escHtml(deck.name)}
               </button>
-            `).join('')}
+            `).join('')
+              : '<p class="deck-empty">No available decks in this category.</p>'}
           </div>
           <div class="deck-preview-panel">
             ${selectedDeck ? renderDeckPreviewCard(selectedDeck, category) : '<p class="deck-empty">Select a deck name to preview details and cover art.</p>'}
@@ -805,6 +831,11 @@ function renderDeckStore(message = '') {
 
   renderCartSummary();
 }
+
+window.toggleOwnedDeckVisibility = function() {
+  showOwnedDecksInStore = !showOwnedDecksInStore;
+  renderDeckStore();
+};
 
 function renderDeckPreviewCard(deck, category) {
   const owned = ownsDeck(deck.id);
@@ -2193,6 +2224,9 @@ function renderStats() {
   const stats = me?.stats || { gamesPlayed: 0, gamesWon: 0, roundsWon: 0 };
   const economy = me?.economy || { coins: 0, tokens: 0 };
   const history = Array.isArray(me?.gameHistory) ? [...me.gameHistory].reverse() : [];
+  const ownedDecks = getAllDecks()
+    .filter(deck => ownsDeck(deck.id))
+    .sort((a, b) => String(a.name || '').localeCompare(String(b.name || '')));
   const winRate = stats.gamesPlayed > 0 ? Math.round((stats.gamesWon / stats.gamesPlayed) * 100) : 0;
 
   const historyHtml = history.length
@@ -2209,6 +2243,26 @@ function renderStats() {
     }).join('')
     : '<p style="color:#777;text-align:center;margin-top:8px;">No completed games yet.</p>';
 
+  const purchasedDecksHtml = ownedDecks.length
+    ? ownedDecks.map(deck => {
+      const category = getDeckCategoryMeta(deck.categoryId);
+      const cards = getDeckCardTexts(deck);
+      const isActive = me?.deckProgress?.activeDeckId === deck.id;
+
+      return `<details class="owned-deck-item">
+        <summary>
+          <span class="owned-deck-name">${escHtml(deck.name)}</span>
+          <span class="owned-deck-meta">${cards.length} cards${category ? ` · ${escHtml(category.name)}` : ''}${isActive ? ' · Equipped' : ''}</span>
+        </summary>
+        <div class="owned-deck-cards-wrap">
+          ${cards.length
+            ? `<ol class="owned-deck-cards">${cards.map(card => `<li>${escHtml(card)}</li>`).join('')}</ol>`
+            : '<p class="deck-empty">No white cards found for this deck.</p>'}
+        </div>
+      </details>`;
+    }).join('')
+    : '<p style="color:#777;text-align:center;margin-top:8px;">No owned decks yet. Visit Deck Store to claim or buy one.</p>';
+
   document.getElementById('statsBody').innerHTML = `
     <div style="text-align:center;margin-bottom:24px;">
       <div style="font-size:4rem;">👤</div>
@@ -2221,6 +2275,10 @@ function renderStats() {
       <div class="stat-card"><div class="stat-num">${winRate}%</div><div class="stat-label">Win Rate</div></div>
       <div class="stat-card"><div class="stat-num">${economy.coins}</div><div class="stat-label">Coins</div></div>
       <div class="stat-card"><div class="stat-num">${economy.tokens}</div><div class="stat-label">Tokens</div></div>
+    </div>
+    <div style="margin-top:18px;">
+      <h3 style="margin:0 0 10px;">Owned Decks</h3>
+      <div class="scoreboard">${purchasedDecksHtml}</div>
     </div>
     <div style="margin-top:18px;">
       <h3 style="margin:0 0 10px;">Recent Games</h3>
