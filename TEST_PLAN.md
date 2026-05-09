@@ -337,6 +337,23 @@ project (CC BY-NC-SA 4.0).
 
 Use this mini-suite at the start of each new work session before implementing new changes.
 
+### 7.0 Regression Test Account (Saved)
+
+Use this fixed account for repeatable local/LAN regression runs:
+
+| Field | Value |
+|-------|-------|
+| Account purpose | Local/LAN regression only (non-Firebase test path) |
+| Email | `regression@test.local` |
+| Password | `Regression123!` |
+| Display name | `Regression QA` |
+| Local profile key | `cah_regression_profile` |
+
+Usage notes:
+
+- This account is intentionally limited to localhost/private-LAN usage.
+- On public origins (for example GitHub Pages), use normal Firebase auth accounts.
+
 ### 7.1 Session Header
 
 | Field | Value |

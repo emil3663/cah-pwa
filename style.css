@@ -42,11 +42,30 @@ body {
 .disclaimer { color: #555; font-size: 0.78rem; margin-top: 30px; }
 .disclaimer a { color: #888; }
 .build-tag {
-  color: #6b7178;
-  font-size: 0.74rem;
-  margin-top: 4px;
+  color: #cfd5dd;
+  font-size: 0.78rem;
+  margin-top: 8px;
   line-height: 1.35;
   word-break: break-word;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 10px;
+  padding: 8px 10px;
+}
+
+.app-build-badge {
+  position: fixed;
+  right: 12px;
+  bottom: max(12px, env(safe-area-inset-bottom));
+  z-index: 999;
+  background: rgba(0, 0, 0, 0.78);
+  color: #f0f3f7;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 999px;
+  padding: 5px 10px;
+  font-size: 0.72rem;
+  letter-spacing: 0.25px;
+  pointer-events: none;
 }
 
 /* ── Top bar ── */

@@ -26,7 +26,7 @@ const FREE_STARTER_DECK_ID = 'general-classic';
 const CUSTOM_DECK_PREFIX = 'custom-';
 const CUSTOM_DECK_CATEGORY_ID = 'custom-player';
 const MIN_CUSTOM_DECK_CARDS = 20;
-const APP_UPDATE_TAG = '2026.05.09-r4';
+const APP_UPDATE_TAG = '2026.05.09-r5';
 const REGRESSION_TEST_LOGIN = {
   email: 'regression@test.local',
   password: 'Regression123!',
@@ -162,12 +162,16 @@ function getRegressionProfile() {
 }
 
 function applyBuildTag() {
-  const el = document.getElementById('buildTag');
-  if (!el) return;
   const hint = canUseRegressionLogin()
     ? ` · Regression sign-in: ${REGRESSION_TEST_LOGIN.email} / ${REGRESSION_TEST_LOGIN.password}`
     : '';
-  el.textContent = `Build ${APP_UPDATE_TAG}${hint}`;
+  const buildText = `Build ${APP_UPDATE_TAG}`;
+
+  const el = document.getElementById('buildTag');
+  if (el) el.textContent = `${buildText}${hint}`;
+
+  const badge = document.getElementById('appBuildBadge');
+  if (badge) badge.textContent = buildText;
 }
 
 function updateAuthTopbar(user) {
