@@ -109,6 +109,8 @@ project (CC BY-NC-SA 4.0).
 | GC-05 | Result broadcast | Czar picks winner and all clients advance to result screen | ⬜ |
 | GC-06 | Next-round host gate | Non-host pressing Next Round is a no-op; host advances all | ⬜ |
 | GC-07 | Bot fallback solo play | Solo game with bots works unchanged without Firestore sync | ⬜ |
+| GC-08 | Shared judging screen gate | Once all submissions are in, all players see judging view with submitted cards | ⬜ |
+| GC-09 | Judge winner drop zone | Czar can drag a submission to Winner Zone and confirm winner | ⬜ |
 
 ### 3.3 In-Game Chat (Phase D)
 
@@ -142,6 +144,9 @@ project (CC BY-NC-SA 4.0).
 | GP-03 | Black card PICK 2 | Must select exactly 2 white cards | ⬜ |
 | GP-04 | Submit wrong number | Alert: "Pick exactly N card(s)!" | ⬜ |
 | GP-05 | Play cards removes from hand | Played cards no longer in hand | ⬜ |
+| GP-05a | Player play area drag/drop | Dragging a hand card into Play Area adds it as selected | ⬜ |
+| GP-05b | Player play area double-tap/click | Double-tapping/clicking a hand card adds it to Play Area | ⬜ |
+| GP-05c | Play area pick limit | Play Area blocks selecting more cards than black-card PICK value | ⬜ |
 | GP-06 | Hand replenished each round | Always 10 cards in hand at start | ⬜ |
 | GP-07 | Card Czar banner shows | Czar sees "You are the Card Czar" | ⬜ |
 | GP-08 | Czar picks winner | Result screen shown with winning combo | ⬜ |

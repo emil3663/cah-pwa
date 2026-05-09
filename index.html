@@ -8,7 +8,7 @@
   <link rel="manifest" href="manifest.json" />
   <meta name="theme-color" content="#111111" />
   <link rel="apple-touch-icon" href="icons/icon-192.png" />
-  <link rel="stylesheet" href="style.css?v=20" />
+  <link rel="stylesheet" href="style.css?v=21" />
 </head>
 <body>
 
@@ -214,16 +214,19 @@
 
     <!-- Hand (white cards) -->
     <div id="handSection" class="hand-section">
-      <p class="hand-label">Your Hand — tap to select:</p>
+      <p class="hand-label">Your Hand — drag cards to Play Area or double-tap/double-click a card:</p>
       <div id="handCards" class="hand-cards"></div>
+      <div id="playDropZone" class="play-drop-zone"></div>
       <button class="btn-ghost" id="btnRerollCard" style="margin:0 auto 8px;display:block;">Reroll Selected (3 🪙)</button>
       <button class="btn-white" id="btnPlayCards" style="display:none;margin:14px auto;display:block;">Play Selected Card(s)</button>
     </div>
 
     <!-- Czar judgement area -->
     <div id="czarSection" class="czar-section" style="display:none;">
-      <p class="hand-label">Choose the best answer:</p>
+      <p class="hand-label" id="judgeInstruction">Waiting for submissions…</p>
       <div id="submittedCards" class="submitted-cards"></div>
+      <div id="judgeWinnerZone" class="play-drop-zone judge-drop-zone"></div>
+      <button class="btn-white" id="btnConfirmWinner" style="display:none;margin:14px auto 0;">Confirm Winner</button>
     </div>
 
     <!-- In-game chat -->
@@ -319,8 +322,8 @@
     window.firebaseAuth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(() => {});
   </script>
   
-  <script src="cards.js?v=20"></script>
-  <script src="app.js?v=20"></script>
+  <script src="cards.js?v=21"></script>
+  <script src="app.js?v=21"></script>
   <script>
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('service-worker.js').catch(() => {});

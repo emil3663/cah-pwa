@@ -1,12 +1,12 @@
 /* ===== Cards Against Humanity — Service Worker ===== */
 
-const CACHE_NAME = 'cah-v20';
+const CACHE_NAME = 'cah-v21';
 const ASSETS = [
   './',
   './index.html',
-  './style.css?v=20',
-  './app.js?v=20',
-  './cards.js?v=20',
+  './style.css?v=21',
+  './app.js?v=21',
+  './cards.js?v=21',
   './manifest.json',
   './icons/bot-skeeter.svg',
   './icons/bot-sally.svg',

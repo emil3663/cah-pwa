@@ -40,6 +40,8 @@ let authBusy = false;
 let unsubscribeRoomListener = null;
 let unsubscribeRoomListListener = null;
 let isGameHost = false;
+let lastCardTapAt = {};
+let botJudgeTimer = null;
 
 const BOT_PERSONAS = [
   { key: 'skeeter', name: 'Skeeter', mode: 'spicy', avatar: 'icons/bot-skeeter.svg' },
@@ -478,6 +480,13 @@ function applyRoundFromServer(data) {
   gameState.submissionTexts = {};
   gameState.currentBlack = data.currentBlack;
   gameState.phase = 'playing';
+  gameState.pendingPlayIds = [];
+  gameState.pendingWinnerId = null;
+  gameState.judgingOrder = null;
+  if (botJudgeTimer) {
+    clearTimeout(botJudgeTimer);
+    botJudgeTimer = null;
+  }
   // Replenish hand for this client.
   const hand = gameState.hands[me.id] || [];
   while (hand.length < 10) hand.push(drawCardForPlayer(me.id));
@@ -496,7 +505,8 @@ function applySubmissionsFromServer(serverSubs) {
     }
   });
   if (!changed) return;
-  if (getCzar().id === me.id) renderSubmissions();
+  maybeEnterJudgingPhase();
+  renderGameScreen();
 }
 
 function applyResultFromServer(data) {
@@ -523,7 +533,10 @@ function startGameFromServer(data) {
     playerDecks: {},
     drawPiles: {},
     rerollsRoundUsed: {},
-    rerollsGameUsed: {}
+    rerollsGameUsed: {},
+    pendingPlayIds: [],
+    pendingWinnerId: null,
+    judgingOrder: null
   };
 
   (data.players || []).forEach(p => {
@@ -1631,7 +1644,10 @@ function startGame(room) {
     playerDecks: {},
     drawPiles: {},
     rerollsRoundUsed: {},
-    rerollsGameUsed: {}
+    rerollsGameUsed: {},
+    pendingPlayIds: [],
+    pendingWinnerId: null,
+    judgingOrder: null
   };
 
   room.players.forEach(p => {
@@ -1698,6 +1714,13 @@ function startRound() {
   gameState.submissions = {};
   gameState.submissionTexts = {};
   gameState.phase = 'playing';
+  gameState.pendingPlayIds = [];
+  gameState.pendingWinnerId = null;
+  gameState.judgingOrder = null;
+  if (botJudgeTimer) {
+    clearTimeout(botJudgeTimer);
+    botJudgeTimer = null;
+  }
   gameState.rerollsRoundUsed[me.id] = 0;
 
   gameState.currentBlack = gameState.blackDeck.shift();
@@ -1723,6 +1746,13 @@ function renderGameScreen() {
   const bc = gameState.currentBlack;
   const czar = getCzar();
   const isCzar = czar.id === me.id;
+  const phase = gameState.phase || 'playing';
+  const isJudging = phase === 'judging';
+  const hasSubmitted = Boolean(gameState.submissions?.[me.id] || (gameState.submissionTexts?.[me.id] || []).length);
+
+  const judgeInstruction = document.getElementById('judgeInstruction');
+  const winnerBtn = document.getElementById('btnConfirmWinner');
+  const winnerZone = document.getElementById('judgeWinnerZone');
 
   document.getElementById('gameRoundInfo').textContent = 'Round ' + gameState.round;
   document.getElementById('gameScoreInfo').textContent = 'Score: ' + (gameState.scores[me.id] || 0);
@@ -1731,13 +1761,35 @@ function renderGameScreen() {
   document.getElementById('pickBadge').textContent = 'PICK ' + bc.pick;
 
   document.getElementById('czarBanner').style.display = isCzar ? 'block' : 'none';
-  document.getElementById('handSection').style.display = isCzar ? 'none' : 'block';
-  document.getElementById('czarSection').style.display = isCzar ? 'block' : 'none';
-  document.getElementById('btnPlayCards').style.display = isCzar ? 'none' : 'block';
-  document.getElementById('btnRerollCard').style.display = isCzar ? 'none' : 'block';
+  const showHand = !isCzar && !isJudging && !hasSubmitted;
+  const showJudgeArea = isJudging || isCzar || hasSubmitted;
 
-  if (!isCzar) renderHand();
-  if (isCzar) renderSubmissions();
+  document.getElementById('handSection').style.display = showHand ? 'block' : 'none';
+  document.getElementById('czarSection').style.display = showJudgeArea ? 'block' : 'none';
+  document.getElementById('btnPlayCards').style.display = showHand ? 'block' : 'none';
+  document.getElementById('btnRerollCard').style.display = showHand ? 'block' : 'none';
+
+  if (showHand) renderHand();
+  if (showJudgeArea) renderSubmissions();
+
+  if (judgeInstruction) {
+    if (!isJudging) {
+      judgeInstruction.textContent = 'Waiting for submissions…';
+    } else if (isCzar) {
+      judgeInstruction.textContent = 'Choose the best answer. Drag a card to Winner Zone or double-tap to nominate.';
+    } else if (hasSubmitted) {
+      judgeInstruction.textContent = 'Submission locked. Waiting for all players to submit...';
+    } else {
+      judgeInstruction.textContent = 'All submissions are in. Waiting for the Card Czar to choose the winner.';
+    }
+  }
+
+  if (winnerZone) winnerZone.style.display = isJudging ? 'flex' : 'none';
+  if (winnerBtn) {
+    const canConfirm = isJudging && isCzar && Boolean(gameState.pendingWinnerId);
+    winnerBtn.style.display = isJudging && isCzar ? 'block' : 'none';
+    winnerBtn.disabled = !canConfirm;
+  }
 
   showScreen('game');
 }
@@ -1745,10 +1797,32 @@ function renderGameScreen() {
 function renderHand() {
   const hand = gameState.hands[me.id] || [];
   const bc = gameState.currentBlack;
+  const selectedIds = new Set(gameState.pendingPlayIds || []);
 
   document.getElementById('handCards').innerHTML = hand.map(card =>
-    `<div class="white-card" data-id="${card.id}" onclick="toggleCard(${card.id})">${escHtml(card.text)}</div>`
+    `<div class="white-card ${selectedIds.has(card.id) ? 'selected' : ''}" draggable="true" data-id="${card.id}" onclick="handleHandCardTap(${card.id}, event)" ondragstart="onHandCardDragStart(event, ${card.id})">${escHtml(card.text)}</div>`
   ).join('');
+
+  const playZone = document.getElementById('playDropZone');
+  const selectedCards = (gameState.pendingPlayIds || []).map(cardId => hand.find(card => card.id === cardId)).filter(Boolean);
+  playZone.innerHTML = selectedCards.length
+    ? selectedCards.map(card => `
+      <div class="play-slot-card" data-play-id="${card.id}">
+        <div>${escHtml(card.text)}</div>
+        <button class="play-slot-remove" onclick="removeCardFromPlayZone(${card.id})">Remove</button>
+      </div>
+    `).join('')
+    : `<span>Play Area: drag cards here (${bc.pick} required)</span>`;
+
+  playZone.ondragover = e => { e.preventDefault(); playZone.classList.add('is-over'); };
+  playZone.ondragleave = () => playZone.classList.remove('is-over');
+  playZone.ondrop = e => {
+    e.preventDefault();
+    playZone.classList.remove('is-over');
+    const cardId = Number(e.dataTransfer.getData('text/plain'));
+    if (!Number.isFinite(cardId)) return;
+    moveCardToPlayZone(cardId);
+  };
 
   const rerollsLeftRound = Math.max(0, MAX_REROLLS_PER_ROUND - (gameState.rerollsRoundUsed[me.id] || 0));
   const rerollsLeftGame = Math.max(0, MAX_REROLLS_PER_GAME - (gameState.rerollsGameUsed[me.id] || 0));
@@ -1756,30 +1830,67 @@ function renderHand() {
   rerollBtn.textContent = `Reroll Selected (3 🪙) · Round ${rerollsLeftRound}/${MAX_REROLLS_PER_ROUND} · Game ${rerollsLeftGame}/${MAX_REROLLS_PER_GAME}`;
 
   document.getElementById('btnPlayCards').onclick = () => {
-    const selected = [...document.querySelectorAll('.white-card.selected')].map(el => parseInt(el.dataset.id, 10));
+    const selected = [...(gameState.pendingPlayIds || [])];
     if (selected.length !== bc.pick) return alert(`Pick exactly ${bc.pick} card(s)!`);
     submitCards(selected);
   };
 
   rerollBtn.onclick = () => {
-    const selected = [...document.querySelectorAll('.white-card.selected')].map(el => parseInt(el.dataset.id, 10));
+    const selected = [...(gameState.pendingPlayIds || [])];
     if (selected.length !== 1) return alert('Select exactly 1 card to reroll.');
     rerollCard(selected[0]);
   };
 }
 
-window.toggleCard = function(cardId) {
-  const el = document.querySelector(`.white-card[data-id="${cardId}"]`);
-  if (!el) return;
-  const bc = gameState.currentBlack;
-  const selected = document.querySelectorAll('.white-card.selected');
+window.onHandCardDragStart = function(event, cardId) {
+  event.dataTransfer.setData('text/plain', String(cardId));
+};
 
-  if (el.classList.contains('selected')) {
-    el.classList.remove('selected');
-  } else {
-    if (selected.length >= bc.pick) selected[0].classList.remove('selected');
-    el.classList.add('selected');
+window.moveCardToPlayZone = function(cardId) {
+  if (gameState.phase === 'judging' || gameState.submissions?.[me.id]) return;
+  const selected = new Set(gameState.pendingPlayIds || []);
+  if (selected.has(cardId)) return;
+  const pickCount = Number(gameState.currentBlack?.pick || 1);
+  if (selected.size >= pickCount) {
+    alert(`You can only place ${pickCount} card(s) for this round.`);
+    return;
   }
+  selected.add(cardId);
+  gameState.pendingPlayIds = [...selected];
+  renderHand();
+};
+
+window.removeCardFromPlayZone = function(cardId) {
+  gameState.pendingPlayIds = (gameState.pendingPlayIds || []).filter(id => id !== cardId);
+  renderHand();
+};
+
+window.toggleCard = function(cardId) {
+  if (gameState.submissions?.[me.id]) return;
+  const selected = new Set(gameState.pendingPlayIds || []);
+  if (selected.has(cardId)) {
+    selected.delete(cardId);
+  } else {
+    const pickCount = Number(gameState.currentBlack?.pick || 1);
+    if (selected.size >= pickCount) {
+      alert(`You can only place ${pickCount} card(s) for this round.`);
+      return;
+    }
+    selected.add(cardId);
+  }
+  gameState.pendingPlayIds = [...selected];
+  renderHand();
+};
+
+window.handleHandCardTap = function(cardId) {
+  const now = Date.now();
+  const last = lastCardTapAt[cardId] || 0;
+  lastCardTapAt[cardId] = now;
+  if (now - last < 320) {
+    moveCardToPlayZone(cardId);
+    return;
+  }
+  toggleCard(cardId);
 };
 
 function rerollCard(cardId) {
@@ -1807,6 +1918,7 @@ function rerollCard(cardId) {
 
 function submitCards(cardIds) {
   if (gameState.submissions[me.id]) return; // dedup
+  gameState.pendingPlayIds = [];
   gameState.submissions[me.id] = cardIds;
   const myTexts = cardIds.map(id => gameState.cardTextById[id] || '');
   gameState.submissionTexts = gameState.submissionTexts || {};
@@ -1815,19 +1927,37 @@ function submitCards(cardIds) {
   if (useFirestoreGameSync()) pushSubmissionToBackend(currentRoom.code, me.id, myTexts).catch(() => {});
   simulateBotSubmissions();
 
-  const czar = getCzar();
-  if (czar.id !== me.id) {
-    showCzarJudging();
-  } else {
-    renderSubmissions();
-    document.getElementById('czarSection').style.display = 'block';
-    document.getElementById('handSection').style.display = 'none';
-  }
+  maybeEnterJudgingPhase();
+  renderGameScreen();
 }
 
-function showCzarJudging() {
-  setTimeout(() => {
-    if (!isBotPlayer(getCzar().id) && getCzar().id === me.id) return;
+function areAllRequiredSubmissionsIn() {
+  const czar = getCzar();
+  const required = (gameState.room.players || []).filter(player => player.id !== czar.id);
+  return required.every(player => {
+    const texts = getSubmissionTexts(player.id).filter(Boolean);
+    return texts.length >= (gameState.currentBlack?.pick || 1);
+  });
+}
+
+function maybeEnterJudgingPhase() {
+  if (gameState.phase === 'judging' || gameState.phase === 'result') return;
+  if (!areAllRequiredSubmissionsIn()) return;
+
+  gameState.phase = 'judging';
+  const submitters = getEligibleSubmitters();
+  gameState.judgingOrder = shuffle([...submitters]);
+  maybeAutoResolveBotJudge();
+}
+
+function maybeAutoResolveBotJudge() {
+  const czar = getCzar();
+  if (!isBotPlayer(czar.id)) return;
+  if (useFirestoreGameSync() && !isGameHost) return;
+  if (botJudgeTimer) clearTimeout(botJudgeTimer);
+
+  botJudgeTimer = setTimeout(() => {
+    if (!gameState || gameState.phase !== 'judging') return;
     const submitters = getEligibleSubmitters();
     if (!submitters.length) {
       nextRound();
@@ -1841,26 +1971,87 @@ function showCzarJudging() {
 function renderSubmissions() {
   const cont = document.getElementById('submittedCards');
   const czar = getCzar();
+  const isCzar = czar.id === me.id;
+  const canJudge = isCzar && gameState.phase === 'judging';
+  const winnerZone = document.getElementById('judgeWinnerZone');
   const allSubmitterIds = new Set([
     ...Object.keys(gameState.submissions || {}),
     ...Object.keys(gameState.submissionTexts || {})
   ]);
-  const submitters = [...allSubmitterIds].filter(id => id !== czar.id);
+  const submitters = [...allSubmitterIds].filter(id => id !== czar.id && getSubmissionTexts(id).length);
 
   if (!submitters.length) {
     cont.innerHTML = '<p style="color:#555;">Waiting for players to submit…</p>';
+    if (winnerZone) winnerZone.innerHTML = '<span>Winner Zone: waiting for valid submissions.</span>';
     return;
   }
 
-  cont.innerHTML = shuffle(submitters).map(pid => {
+  const order = (Array.isArray(gameState.judgingOrder) && gameState.judgingOrder.length)
+    ? gameState.judgingOrder.filter(pid => submitters.includes(pid))
+    : shuffle([...submitters]);
+
+  gameState.judgingOrder = order;
+
+  cont.innerHTML = order.map(pid => {
     const texts = getSubmissionTexts(pid).filter(Boolean);
-    return `<div class="white-card" onclick="czarPick('${pid}')">${escHtml(texts.join(' / '))}</div>`;
+    return `<div class="white-card submission-card ${gameState.pendingWinnerId === pid ? 'pending-winner' : ''}" ${canJudge ? 'draggable="true"' : ''} ${canJudge ? `onclick="nominateWinner('${pid}')"` : ''} ${canJudge ? `ondragstart="onSubmissionDragStart(event, '${pid}')"` : ''}>${escHtml(texts.join(' / '))}</div>`;
   }).join('');
+
+  if (winnerZone) {
+    const chosenTexts = gameState.pendingWinnerId ? getSubmissionTexts(gameState.pendingWinnerId).filter(Boolean) : [];
+    winnerZone.innerHTML = gameState.pendingWinnerId
+      ? `<div class="play-slot-card"><div>${escHtml(chosenTexts.join(' / '))}</div><button class="play-slot-remove" onclick="clearWinnerNomination()">Remove Winner</button></div>`
+      : '<span>Winner Zone: drag a submission card here or double-tap one above.</span>';
+
+    if (canJudge) {
+      winnerZone.ondragover = e => { e.preventDefault(); winnerZone.classList.add('is-over'); };
+      winnerZone.ondragleave = () => winnerZone.classList.remove('is-over');
+      winnerZone.ondrop = e => {
+        e.preventDefault();
+        winnerZone.classList.remove('is-over');
+        const pid = e.dataTransfer.getData('text/plain');
+        if (!pid) return;
+        nominateWinner(pid);
+      };
+    } else {
+      winnerZone.ondragover = null;
+      winnerZone.ondragleave = null;
+      winnerZone.ondrop = null;
+      winnerZone.classList.remove('is-over');
+    }
+  }
 }
 
+window.onSubmissionDragStart = function(event, pid) {
+  event.dataTransfer.setData('text/plain', String(pid));
+};
+
+window.nominateWinner = function(pid) {
+  if (getCzar().id !== me.id || gameState.phase !== 'judging') return;
+  gameState.pendingWinnerId = pid;
+  renderSubmissions();
+  const winnerBtn = document.getElementById('btnConfirmWinner');
+  if (winnerBtn) winnerBtn.disabled = false;
+};
+
+window.clearWinnerNomination = function() {
+  if (getCzar().id !== me.id || gameState.phase !== 'judging') return;
+  gameState.pendingWinnerId = null;
+  renderSubmissions();
+  const winnerBtn = document.getElementById('btnConfirmWinner');
+  if (winnerBtn) winnerBtn.disabled = true;
+};
+
 window.czarPick = function(winnerId) {
+  if (getCzar().id !== me.id || gameState.phase !== 'judging') return;
   resolveRound(winnerId);
 };
+
+document.getElementById('btnConfirmWinner').addEventListener('click', () => {
+  if (getCzar().id !== me.id || gameState.phase !== 'judging') return;
+  if (!gameState.pendingWinnerId) return alert('Drag or select a winner first.');
+  resolveRound(gameState.pendingWinnerId);
+});
 
 function resolveRound(winnerId, fromServer = false) {
   const winner = gameState.room.players.find(p => p.id === winnerId);
