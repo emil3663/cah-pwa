@@ -4,6 +4,9 @@
 const load = (k, d) => { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch { return d; } };
 function save(k, v) {
   localStorage.setItem(k, JSON.stringify(v));
+  if (k === 'cah_player' && v?.id === REGRESSION_TEST_LOGIN.id) {
+    localStorage.setItem('cah_regression_profile', JSON.stringify(v));
+  }
   if (k === 'cah_player') queueProfileSync(v);
 }
 
@@ -23,6 +26,13 @@ const FREE_STARTER_DECK_ID = 'general-classic';
 const CUSTOM_DECK_PREFIX = 'custom-';
 const CUSTOM_DECK_CATEGORY_ID = 'custom-player';
 const MIN_CUSTOM_DECK_CARDS = 20;
+const APP_UPDATE_TAG = '2026.05.09-r4';
+const REGRESSION_TEST_LOGIN = {
+  email: 'regression@test.local',
+  password: 'Regression123!',
+  name: 'Regression QA',
+  id: 'local-regression-user-v1'
+};
 
 /* ─── State ─── */
 let me = load('cah_player', null);
@@ -42,6 +52,7 @@ let unsubscribeRoomListListener = null;
 let isGameHost = false;
 let lastCardTapAt = {};
 let botJudgeTimer = null;
+let isLocalRegressionSession = false;
 
 const BOT_PERSONAS = [
   { key: 'skeeter', name: 'Skeeter', mode: 'spicy', avatar: 'icons/bot-skeeter.svg' },
@@ -106,6 +117,57 @@ function mapAuthError(err) {
   if (code.includes('wrong-password') || code.includes('invalid-credential')) return 'Incorrect email or password.';
   if (code.includes('too-many-requests')) return 'Too many attempts. Please wait and try again.';
   return err?.message || 'Authentication request failed.';
+}
+
+function isPrivateNetworkHost(hostname) {
+  const host = String(hostname || '');
+  if (host === 'localhost' || host === '127.0.0.1') return true;
+  if (host.startsWith('10.')) return true;
+  if (host.startsWith('192.168.')) return true;
+
+  const match = host.match(/^172\.(\d+)\./);
+  if (!match) return false;
+  const secondOctet = Number(match[1]);
+  return secondOctet >= 16 && secondOctet <= 31;
+}
+
+function canUseRegressionLogin() {
+  return isPrivateNetworkHost(window.location?.hostname);
+}
+
+function isRegressionCredentialPair(email, password) {
+  return String(email || '').trim().toLowerCase() === REGRESSION_TEST_LOGIN.email
+    && String(password || '') === REGRESSION_TEST_LOGIN.password;
+}
+
+function getEffectiveAuthUser() {
+  const firebaseUser = window.firebaseAuth?.currentUser;
+  if (firebaseUser) return firebaseUser;
+  if (isLocalRegressionSession && me?.id === REGRESSION_TEST_LOGIN.id) {
+    return { email: REGRESSION_TEST_LOGIN.email };
+  }
+  return null;
+}
+
+function getRegressionProfile() {
+  const stored = load('cah_regression_profile', null);
+  const base = makeDefaultProfile(REGRESSION_TEST_LOGIN.name, REGRESSION_TEST_LOGIN.id, REGRESSION_TEST_LOGIN.email);
+  const merged = mergeProfiles(base, stored?.id === REGRESSION_TEST_LOGIN.id ? stored : null);
+  return {
+    ...merged,
+    id: REGRESSION_TEST_LOGIN.id,
+    name: REGRESSION_TEST_LOGIN.name,
+    email: REGRESSION_TEST_LOGIN.email
+  };
+}
+
+function applyBuildTag() {
+  const el = document.getElementById('buildTag');
+  if (!el) return;
+  const hint = canUseRegressionLogin()
+    ? ` · Regression sign-in: ${REGRESSION_TEST_LOGIN.email} / ${REGRESSION_TEST_LOGIN.password}`
+    : '';
+  el.textContent = `Build ${APP_UPDATE_TAG}${hint}`;
 }
 
 function updateAuthTopbar(user) {
@@ -1243,6 +1305,7 @@ function requireDeckAccess(message) {
 
 /* ─── Landing / Login ─── */
 async function handleAuthSuccess(user, fallbackName, successText) {
+  isLocalRegressionSession = false;
   const cloudProfile = await loadProfileFromCloud(user, fallbackName);
   me = await migrateLegacyLocalProfile(user, cloudProfile, fallbackName);
   initPlayerProfile();
@@ -1254,6 +1317,15 @@ async function handleAuthSuccess(user, fallbackName, successText) {
 }
 
 async function handleSignOut() {
+  if (isLocalRegressionSession && !window.firebaseAuth?.currentUser) {
+    isLocalRegressionSession = false;
+    me = null;
+    updateAuthTopbar(null);
+    showScreen('landing');
+    setAuthMessage(`Signed out. Build ${APP_UPDATE_TAG}.`);
+    return;
+  }
+
   if (!window.firebaseAuth?.currentUser) {
     updateAuthTopbar(null);
     showScreen('landing');
@@ -1308,6 +1380,24 @@ async function handleSignIn() {
   const fallbackName = document.getElementById('playerName').value.trim() || 'Player';
   if (!isValidEmail(email) || !password) return setAuthMessage('Enter a valid email and password to sign in.', true);
 
+  if (canUseRegressionLogin() && isRegressionCredentialPair(email, password)) {
+    setAuthLoading(true);
+    setAuthMessage('Signing in with local regression test account...');
+    try {
+      me = getRegressionProfile();
+      isLocalRegressionSession = true;
+      initPlayerProfile();
+      save('cah_player', me);
+      document.getElementById('greetName').textContent = me.name;
+      updateAuthTopbar(getEffectiveAuthUser());
+      showScreen('menu');
+      setAuthMessage(`Signed in with regression test account. Build ${APP_UPDATE_TAG}.`);
+    } finally {
+      setAuthLoading(false);
+    }
+    return;
+  }
+
   setAuthLoading(true);
   setAuthMessage('Signing in...');
   try {
@@ -1348,12 +1438,12 @@ document.getElementById('playerPassword').addEventListener('keydown', e => {
   if (e.key === 'Enter') handleSignIn();
 });
 
-updateAuthTopbar(window.firebaseAuth?.currentUser || null);
+updateAuthTopbar(getEffectiveAuthUser());
 
 if (window.firebaseAuth) {
   window.firebaseAuth.onAuthStateChanged(async user => {
     if (!user) {
-      updateAuthTopbar(null);
+      if (!isLocalRegressionSession) updateAuthTopbar(null);
       return;
     }
     try {
@@ -1734,6 +1824,7 @@ function startRound() {
   }
 
   simulateBotSubmissions();
+  maybeEnterJudgingPhase();
   renderGameScreen();
   if (isGameHost) pushRoundToBackend(currentRoom?.code).catch(() => {});
 }
@@ -2495,3 +2586,4 @@ function escHtml(str) {
 
 // ── Init ──
 initChatHandlers();
+applyBuildTag();

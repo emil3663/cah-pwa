@@ -8,7 +8,7 @@
   <link rel="manifest" href="manifest.json" />
   <meta name="theme-color" content="#111111" />
   <link rel="apple-touch-icon" href="icons/icon-192.png" />
-  <link rel="stylesheet" href="style.css?v=21" />
+  <link rel="stylesheet" href="style.css?v=22" />
 </head>
 <body>
 
@@ -25,6 +25,7 @@
       <button class="btn-ghost" id="btnSignIn">Sign In</button>
       <button class="btn-ghost" id="btnResetPassword">Reset Password</button>
       <p id="authMessage" class="disclaimer" aria-live="polite"></p>
+      <p id="buildTag" class="build-tag" aria-live="polite"></p>
     </div>
     <p class="disclaimer">Deck content sourced from the open-source <a href="https://github.com/crhallberg/json-against-humanity" target="_blank" rel="noopener noreferrer">json-against-humanity</a> project (CC BY-NC-SA 4.0).</p>
   </div>
@@ -322,8 +323,8 @@
     window.firebaseAuth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(() => {});
   </script>
   
-  <script src="cards.js?v=21"></script>
-  <script src="app.js?v=21"></script>
+  <script src="cards.js?v=23"></script>
+  <script src="app.js?v=23"></script>
   <script>
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('service-worker.js').catch(() => {});

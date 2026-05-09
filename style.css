@@ -41,6 +41,13 @@ body {
 .landing-form input { text-align: center; }
 .disclaimer { color: #555; font-size: 0.78rem; margin-top: 30px; }
 .disclaimer a { color: #888; }
+.build-tag {
+  color: #6b7178;
+  font-size: 0.74rem;
+  margin-top: 4px;
+  line-height: 1.35;
+  word-break: break-word;
+}
 
 /* ── Top bar ── */
 .topbar {
