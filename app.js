@@ -26,12 +26,16 @@ const FREE_STARTER_DECK_ID = 'general-classic';
 const CUSTOM_DECK_PREFIX = 'custom-';
 const CUSTOM_DECK_CATEGORY_ID = 'custom-player';
 const MIN_CUSTOM_DECK_CARDS = 20;
-const APP_UPDATE_TAG = '2026.05.09-r7';
+const APP_UPDATE_TAG = '2026.05.09-r8';
 const REGRESSION_TEST_LOGIN = {
   email: 'regression@test.local',
   password: 'Regression123!',
   name: 'Regression QA',
   id: 'local-regression-user-v1'
+};
+const REGRESSION_TEST_ECONOMY = {
+  coins: 50000,
+  tokens: 5000
 };
 
 /* ─── State ─── */
@@ -150,11 +154,22 @@ function getEffectiveAuthUser() {
 }
 
 function getRegressionProfile() {
-  const stored = load('cah_regression_profile', null);
-  const base = makeDefaultProfile(REGRESSION_TEST_LOGIN.name, REGRESSION_TEST_LOGIN.id, REGRESSION_TEST_LOGIN.email);
-  const merged = mergeProfiles(base, stored?.id === REGRESSION_TEST_LOGIN.id ? stored : null);
+  const seeded = makeDefaultProfile(REGRESSION_TEST_LOGIN.name, REGRESSION_TEST_LOGIN.id, REGRESSION_TEST_LOGIN.email);
+  seeded.economy = {
+    coins: REGRESSION_TEST_ECONOMY.coins,
+    tokens: REGRESSION_TEST_ECONOMY.tokens
+  };
+  seeded.customDecks = [];
+  seeded.gameHistory = [];
+  seeded.deckProgress = {
+    ownedDeckIds: [],
+    activeDeckIds: [],
+    activeDeckId: null,
+    freeStarterClaimed: false,
+    featuredSpecialClaimed: false
+  };
   return {
-    ...merged,
+    ...seeded,
     id: REGRESSION_TEST_LOGIN.id,
     name: REGRESSION_TEST_LOGIN.name,
     email: REGRESSION_TEST_LOGIN.email
@@ -1434,6 +1449,7 @@ async function handleSignIn() {
     setAuthLoading(true);
     setAuthMessage('Signing in with local regression test account...');
     try {
+      localStorage.removeItem('cah_regression_profile');
       me = getRegressionProfile();
       isLocalRegressionSession = true;
       initPlayerProfile();

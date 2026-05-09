@@ -350,10 +350,13 @@ Use this fixed account for repeatable local/LAN regression runs:
 | Password | `Regression123!` |
 | Display name | `Regression QA` |
 | Local profile key | `cah_regression_profile` |
+| Seeded wallet per sign-in | `50000` coins / `5000` tokens |
 
 Usage notes:
 
 - This account is intentionally limited to localhost/private-LAN usage.
+- Deck ownership and deck pool are reset to empty on each regression sign-in.
+- Wallet is re-seeded on each regression sign-in to guarantee full deck-purchase test coverage.
 - On public origins (for example GitHub Pages), use normal Firebase auth accounts.
 
 ### 7.1 Session Header
