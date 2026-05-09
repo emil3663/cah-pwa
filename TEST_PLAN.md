@@ -408,27 +408,21 @@ Usage notes:
 |-------|-------|
 | Date | 2026-05-09 |
 | Tester | GitHub Copilot |
-| Build / Commit | working tree after f896f6d (pending commit) |
+| Build / Commit | ce5e408 |
 | URL under test | http://127.0.0.1:8081/?smoke=phase2-local-regression-v23 |
 | Browser | VS Code integrated browser |
-| Service worker version | cah-v23 |
+| Service worker version | cah-v26 |
 
 | ID | Result | Notes |
 |----|--------|-------|
-| QS-01 | ✅ Pass | Cache-bust load confirmed with `style.css?v=22`, `cards.js?v=23`, `app.js?v=23`. |
-| QS-02 | ✅ Pass | Landing screen displays build/update tag and local regression sign-in hint. |
-| QS-03 | ✅ Pass | `regression@test.local` / `Regression123!` signs in without Firebase registration on localhost. |
-| QS-04 | ✅ Pass | Deck Store loads with category sections and wallet without runtime errors. |
-| QS-05 | ✅ Pass | Purchased starter deck hides by default after claim (`Core and Expansions` count drops from 10 to 9). |
-| QS-06 | ✅ Pass | Show/Hide Owned Decks toggle correctly restores/removes owned starter deck in list. |
-| QS-07 | ✅ Pass | Stats screen Owned Decks section expands and reveals card text list. |
-| QS-08 | ✅ Pass | Room created and game starts successfully with 1 AI and rounds-to-win=3. |
-| QS-09 | ✅ Pass | Double-click on hand card adds it to Play Area and selection state updates. |
-| QS-10 | ✅ Pass | After submission, shared judging state appears with submission lock messaging and visible judging cards. |
-| QS-11 | ✅ Pass | Judge nomination + Confirm Winner resolves result screen. |
-| QS-12 | ✅ Pass | Round progression and score updates continue correctly after result screen. |
-| QS-13 | ⚠️ Partial | Stats screen reached earlier in run and renders correctly; recent-games assertion not rechecked after final round in this run. |
+| DE-07 | ✅ Pass | Deck pool persisted after reload/sign-in (`Deck pool: 1` before and after refresh). |
+| DE-21 | ✅ Pass | Preview actions validated: owned deck showed Add/Remove Pool controls and applied state changes immediately. |
+| DE-34 | ✅ Pass | Multi-deck pool toggle validated (`Deck pool: 1` -> remove -> `Deck pool: 0` -> add -> `Deck pool: 1`; later expanded to `Deck pool: 2`). |
+| GP-22 | ⚠️ Partial | Two-deck pool configured and game started successfully; mixed-card source diversity appears plausible in hand, but per-card deck provenance is not exposed in UI for strict assertion. |
+| NS-03 | ⛔ Blocked | Could not construct NSFW-only pool with regression account wallet (`10 🔷 / 200 🪙`); available NSFW decks observed at `25+ 🔷` or `250+ 🪙`. |
+| NS-04 | ⛔ Blocked | Same prerequisite blocker as NS-03 (unable to own/select NSFW deck with current regression account funds). |
 
 Follow-up:
 
-- Re-run QS-13 after a complete game-over cycle to confirm recent-games list update in the same run context.
+- Add a low-cost NSFW test deck SKU or provide seeded regression wallet with >=25 tokens (or >=250 coins), then rerun NS-03 and NS-04.
+- Optional instrumentation improvement: expose deck source metadata in card DOM/test hooks to hard-assert GP-22 mixed-deck provenance.
