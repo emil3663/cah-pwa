@@ -346,26 +346,28 @@ Use this mini-suite at the start of each new work session before implementing ne
 | Browser | |
 | Service worker version | |
 
-### 7.2 Quick Run Checklist (10-15 min)
+### 7.2 Quick Run Checklist (15-20 min)
 
 | ID | Step | Expected Result | Pass/Fail | Notes |
 |----|------|-----------------|-----------|-------|
 | QS-01 | Open app with cache-bust query param | Latest JS/CSS loads (no stale UI) | | |
 | QS-02 | Sign in with test account | Lands on menu with profile loaded | | |
 | QS-03 | Open Deck Store | Deck categories render without runtime errors | | |
-| QS-04 | Import custom pack via line mode (>=20 lines) | Deck is created and auto-equipped | | |
-| QS-05 | Reload app | Custom deck remains owned and active | | |
-| QS-06 | Create room (1 AI, rounds=3) and start game | Lobby and game open successfully | | |
-| QS-07 | Advance to round 2 | Hand contains imported custom pack cards | | |
-| QS-08 | Send one chat message in-game | Message appears and sync UI updates | | |
-| QS-09 | Finish game quickly | Game over appears and stats update | | |
-| QS-10 | Open stats screen | Recent Games includes latest completed match | | |
+| QS-04 | Confirm owned deck filtering default | Purchased non-custom decks hidden until Show Owned Decks is enabled | | |
+| QS-05 | Toggle Show Owned Decks in store | Owned decks become visible and can be hidden again | | |
+| QS-06 | Open profile/stats Owned Decks section | Owned decks render and each deck can expand to show card texts | | |
+| QS-07 | Create room (1 AI, rounds=3) and start game | Lobby and game open successfully | | |
+| QS-08 | Drag or double-tap card into Play Area | Card moves into Play Area with pick-count limits enforced | | |
+| QS-09 | Submit cards and wait for all submissions | All players transition to shared judging view | | |
+| QS-10 | As judge, drag submission to Winner Zone and confirm | Winner resolves and result screen appears | | |
+| QS-11 | Finish game quickly | Game over appears and stats update | | |
+| QS-12 | Open stats screen | Recent Games includes latest completed match | | |
 
 ### 7.3 Exit Criteria
 
 | Outcome | Rule |
 |---------|------|
-| Green | QS-01..QS-10 all pass |
+| Green | QS-01..QS-12 all pass |
 | Yellow | 1 failure with workaround documented |
 | Red | 2+ failures or blocking regression |
 
@@ -377,3 +379,37 @@ Use this mini-suite at the start of each new work session before implementing ne
 | Capture evidence | Console error or screenshot + short repro |
 | Triage | Mark as `bug` and assign severity (P0/P1/P2) |
 | Gate | Do not start new feature work until P0/P1 smoke failures are fixed |
+
+### 7.5 Latest Run Log
+
+| Field | Value |
+|-------|-------|
+| Date | 2026-05-09 |
+| Tester | GitHub Copilot |
+| Build / Commit | f896f6d |
+| URL under test | http://127.0.0.1:8081/?smoke=phase2-20260509 |
+| Browser | VS Code integrated browser |
+| Service worker version | cah-v21 |
+
+| ID | Result | Notes |
+|----|--------|-------|
+| QS-01 | ✅ Pass | Cache-bust load confirmed with `style.css?v=21`, `cards.js?v=21`, `app.js?v=21`. |
+| QS-02 | ❌ Blocked | Firebase auth returned `auth/requests-from-referer-http://127.0.0.1:8081-are-blocked`. |
+| QS-03 | ⛔ Not run | Requires authenticated menu access. |
+| QS-04 | ⛔ Not run | Requires authenticated menu access. |
+| QS-05 | ⛔ Not run | Requires authenticated menu access. |
+| QS-06 | ⛔ Not run | Requires authenticated menu access. |
+| QS-07 | ⛔ Not run | Requires authenticated menu access. |
+| QS-08 | ⛔ Not run | Requires authenticated menu access. |
+| QS-09 | ⛔ Not run | Requires authenticated menu access. |
+| QS-10 | ⛔ Not run | Requires authenticated menu access. |
+| QS-11 | ⛔ Not run | Requires authenticated menu access. |
+| QS-12 | ⛔ Not run | Requires authenticated menu access. |
+
+Blocking issue:
+
+- Firebase API key referrer policy does not currently allow `http://127.0.0.1:8081/*`.
+
+Rerun criteria:
+
+- After Firebase/GCP referrer and authorized domain settings are updated, rerun QS-02 through QS-12 in full.
