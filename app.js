@@ -2413,10 +2413,37 @@ function resolveRound(winnerId, fromServer = false) {
     setTimeout(() => showGameOver(winner, praise), 2000);
   } else {
     document.getElementById('btnNextRound').style.display = '';
+    // Always enable Next button for czar on result screen
+    const czar = getCzar();
+    if (czar.id === me.id) {
+      document.getElementById('btnNextRound').disabled = false;
+    }
   }
 }
 
+
+// Inactivity timer for non-czar players
+let inactivityTimer = null;
+function resetInactivityTimer() {
+  if (inactivityTimer) clearTimeout(inactivityTimer);
+  // Only non-czar players are auto-removed
+  if (!gameState) return;
+  const czar = getCzar();
+  if (czar.id === me.id) return;
+  inactivityTimer = setTimeout(() => {
+    // Remove self from game after 3 minutes inactivity
+    alert('You were removed from the game due to inactivity. You can rejoin from the lobby.');
+    leaveGameToMenu();
+  }, 3 * 60 * 1000);
+}
+
+// Reset inactivity timer on any interaction
+['mousemove', 'keydown', 'mousedown', 'touchstart'].forEach(evt => {
+  window.addEventListener(evt, resetInactivityTimer, true);
+});
+
 document.getElementById('btnNextRound').addEventListener('click', () => {
+  resetInactivityTimer();
   nextRound();
 });
 
