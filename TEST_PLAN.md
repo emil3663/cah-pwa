@@ -118,6 +118,25 @@ project (CC BY-NC-SA 4.0).
 | GC-08 | Shared judging screen gate | Once all submissions are in, all players see judging view with submitted cards | ⬜ |
 | GC-09 | Judge winner drop zone | Czar can drag a submission to Winner Zone and confirm winner | ⬜ |
 
+### 3.3 Phase 1: Per-Player Deck Selection & Multiplayer Sequencing
+
+| ID | Test | Expected Result | Status |
+|----|------|-----------------|--------|
+| P1-01 | Solo deck isolation | Player A's added deck does not appear in Player B's pool | ⬜ |
+| P1-02 | Solo deck additions persist | Player A adds a deck, leaves, rejoins; deck is still equipped | ⬜ |
+| P1-03 | Host-only game start gate | Non-host player clicks Start Game; alert message shown with host name; game does not start | ⬜ |
+| P1-04 | NSFW deck gate on start | Host without NSFW-compatible deck clicks Start Game in non-NSFW room; alert shown, deck store opened | ⬜ |
+| P1-05 | NSFW-compatible deck on start | Host selects non-NSFW deck, clicks Start in non-NSFW room; game starts without NSFW pool cards | ⬜ |
+| P1-06 | Pre-generated next black card | After czar picks winner, host player sees next question pre-generated and stored in gameState | ⬜ |
+| P1-07 | Question first mode labels | In question-first mode, next black card is marked `questionFirst: true` in pre-generation | ⬜ |
+| P1-08 | All players same round phase | Both host and non-host players show same black card and czar immediately on round start | ⬜ |
+| P1-09 | Next Question button any player | Non-host player can click Next Question and round advances (host does not need to click) | ⬜ |
+| P1-10 | Next Question host behavior | Host player clicks Next Question; non-host players advance to same round via Firestore push | ⬜ |
+| P1-11 | Black deck exhaustion reshuffle | When black deck is empty, remaining undealt cards are reshuffled for next black card | ⬜ |
+| P1-12 | Black deck persistence round over | Deck state persists across rounds and only decreases by 1 per round | ⬜ |
+| P1-13 | White cards from personal pool | Host and non-host players each draw white cards only from their own equipped deck pool | ⬜ |
+| P1-14 | Reroll limits per deck | Player rerolls a white card; reroll count ticks up and respects deck reroll limit | ⬜ |
+
 ### 3.3 In-Game Chat (Phase D)
 
 | ID | Test | Expected Result | Status |

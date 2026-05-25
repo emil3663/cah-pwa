@@ -615,6 +615,7 @@ async function pushRoundToBackend(code) {
       pick: gameState.currentBlack.pick,
       id: gameState.currentBlack.id
     },
+    playerDecks: { ...gameState.playerDecks },
     submissions: {},
     scores: { ...gameState.scores },
     updatedAt: Date.now()
@@ -635,14 +636,18 @@ async function pushSubmissionToBackend(code, playerId, texts) {
   });
 }
 
-async function pushResultToBackend(code, winnerId, scores) {
+async function pushResultToBackend(code, winnerId, scores, nextBlackCard = null) {
   if (!useFirestoreGameSync()) return;
-  await roomDocRef(code).set({
+  const data = {
     gamePhase: 'result',
     lastWinnerId: winnerId,
     scores: { ...scores },
     updatedAt: Date.now()
-  }, { merge: true });
+  };
+  if (nextBlackCard) {
+    data.nextBlackCard = nextBlackCard;
+  }
+  await roomDocRef(code).set(data, { merge: true });
 }
 
 function getSubmissionTexts(playerId) {
@@ -652,6 +657,7 @@ function getSubmissionTexts(playerId) {
 
 function applyRoundFromServer(data) {
   if (!gameState || !data.currentBlack) return;
+  // Update game state only; do NOT render UI. Each player's UI moves only when they click Next Round.
   gameState.round = data.roundNum;
   gameState.czarIndex = data.czarIndex;
   gameState.scores = { ...(data.scores || {}) };
@@ -666,11 +672,10 @@ function applyRoundFromServer(data) {
     clearTimeout(botJudgeTimer);
     botJudgeTimer = null;
   }
-  // Replenish hand for this client.
+  // Replenish hand for this client (ready for when player clicks).
   const hand = gameState.hands[me.id] || [];
   while (hand.length < 10) hand.push(drawCardForPlayer(me.id));
   gameState.hands[me.id] = hand;
-  renderGameScreen();
 }
 
 function applySubmissionsFromServer(serverSubs) {
@@ -706,6 +711,7 @@ function startGameFromServer(data) {
     submissionTexts: {},
     phase: 'playing',
     currentBlack: data.currentBlack || null,
+    nextBlackCard: data.nextBlackCard || null,
     mode: data.mode,
     cardCounter: 1,
     cardTextById: {},
@@ -724,7 +730,7 @@ function startGameFromServer(data) {
     gameState.rerollsGameUsed[p.id] = 0;
     const deckId = p.isBot
       ? chooseDeckForBot(p, data.allowNsfw !== false)
-      : getPlayableDeckPoolForRoom(data.allowNsfw !== false);
+      : (data.playerDecks?.[p.id] || getPlayableDeckPoolForRoom(data.allowNsfw !== false));
     gameState.playerDecks[p.id] = deckId;
     gameState.drawPiles[p.id] = createDeckPile(deckId);
     gameState.hands[p.id] = [];
@@ -1871,6 +1877,11 @@ document.getElementById('btnStartGame').addEventListener('click', async () => {
   if (!requireDeckAccess('Add at least one deck to your pool before starting the game.')) return;
   if (!currentRoom) return;
 
+  if (currentRoom.host && currentRoom.host !== me.id) {
+    alert('Only the room creator can start the game. Waiting for ' + (currentRoom.players.find(p => p.id === currentRoom.host)?.name || 'the host') + ' to start.');
+    return;
+  }
+
   if (!hasCompatibleDeckForRoom(currentRoom.allowNsfw !== false)) {
     alert('NSFW is disabled for this room. Add at least one non-NSFW deck to your pool before starting.');
     openDeckStore('Choose at least one non-NSFW deck for your pool to continue.');
@@ -1915,6 +1926,7 @@ function startGame(room) {
     submissionTexts: {},
     phase: 'playing',
     currentBlack: null,
+    nextBlackCard: null,
     mode: room.mode,
     cardCounter: 1,
     cardTextById: {},
@@ -1927,6 +1939,7 @@ function startGame(room) {
     judgingOrder: null
   };
 
+  const playerDeckMapping = {};
   room.players.forEach(p => {
     gameState.scores[p.id] = 0;
     gameState.rerollsRoundUsed[p.id] = 0;
@@ -1936,6 +1949,7 @@ function startGame(room) {
       ? chooseDeckForBot(p, room.allowNsfw !== false)
       : getPlayableDeckPoolForRoom(room.allowNsfw !== false);
     gameState.playerDecks[p.id] = deckId;
+    playerDeckMapping[p.id] = deckId;
     gameState.drawPiles[p.id] = createDeckPile(deckId);
 
     gameState.hands[p.id] = [];
@@ -1943,6 +1957,10 @@ function startGame(room) {
       gameState.hands[p.id].push(drawCardForPlayer(p.id));
     }
   });
+
+  if (useFirestoreRoomSync() && currentRoom) {
+    currentRoom.playerDecks = playerDeckMapping;
+  }
 
   startRound();
 }
@@ -2007,10 +2025,15 @@ function startRound() {
   }
   gameState.rerollsRoundUsed[me.id] = 0;
 
-  gameState.currentBlack = gameState.blackDeck.shift();
-  if (!gameState.currentBlack) {
-    gameState.blackDeck = shuffle(CAH_BLACK_CARDS.map((c, i) => ({ ...c, id: i })));
+  if (gameState.nextBlackCard) {
+    gameState.currentBlack = gameState.nextBlackCard;
+    gameState.nextBlackCard = null;
+  } else {
     gameState.currentBlack = gameState.blackDeck.shift();
+    if (!gameState.currentBlack) {
+      gameState.blackDeck = shuffle(CAH_BLACK_CARDS.map((c, i) => ({ ...c, id: i })));
+      gameState.currentBlack = gameState.blackDeck.shift();
+    }
   }
 
   if (gameState.mode === 'question') {
@@ -2353,7 +2376,18 @@ function resolveRound(winnerId, fromServer = false) {
     save('cah_player', me);
   }
 
-  if (!fromServer) {
+  if (!fromServer && isGameHost) {
+    let nextBlack = gameState.blackDeck.shift();
+    if (!nextBlack) {
+      gameState.blackDeck = shuffle(CAH_BLACK_CARDS.map((c, i) => ({ ...c, id: i })));
+      nextBlack = gameState.blackDeck.shift();
+    }
+    if (gameState.mode === 'question') {
+      nextBlack = { ...nextBlack, questionFirst: true };
+    }
+    gameState.nextBlackCard = nextBlack;
+    pushResultToBackend(currentRoom?.code, winnerId, gameState.scores, nextBlack).catch(() => {});
+  } else if (!fromServer) {
     pushResultToBackend(currentRoom?.code, winnerId, gameState.scores).catch(() => {});
   }
 
@@ -2383,9 +2417,6 @@ function resolveRound(winnerId, fromServer = false) {
 }
 
 document.getElementById('btnNextRound').addEventListener('click', () => {
-  // In Firestore multiplayer, only the game host advances rounds.
-  // Non-hosts wait for the server-pushed round state.
-  if (useFirestoreGameSync() && !isGameHost) return;
   nextRound();
 });
 
