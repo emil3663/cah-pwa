@@ -129,6 +129,14 @@ That is the paradigm shift the entire industry — really, the entire world — 
 
 If you can make that shift now — and you can, because everything in your career has been training for it — you walk in miles ahead of nearly everyone trying to enter this space. The market is forming around the exact skills you already have. You are not learning to compete in someone else's game. You are early to the one that's just starting.
 
+## One more thing — the trap to watch for
+
+There will be a moment, probably in the second or third loop, where Copilot produces something genuinely impressive — a clean diff, working code, no rework needed — and you will feel a small drop in your chest. You will think: *the agent did the real work; I just typed some words at it.*
+
+That feeling will come. It is wrong. The test is straightforward: imagine handing your exact same brief, word for word, to someone who has never written a decision record, who does not know what an acceptance criterion is, who has no instinct for edge cases. Hand it to them and watch what comes back. It will not be the clean diff Copilot gave you. It will be a mess — half a feature, half a bug, half a misunderstanding.
+
+The agent's output is exactly as good as the brief. The brief is exactly as good as the person writing it. Writing the brief is not "just" anything. It is the work.
+
 ## What happens next
 
 Read `PROJECT_BRIEF.md` next. That document lays out the plan for the next 8 weeks.

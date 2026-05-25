@@ -38,13 +38,13 @@ A small set of agent-agnostic markdown skill files that document the patterns. E
 
 The first artefact proves Emil can do the work. The second proves the methodology generalises beyond CAH. Together they make him a Senior AI Agent Director, not just *"someone who built a chatty game."*
 
-## 4) The story Emil tells
+## 4) The story I tell
 
-For most of his career, Emil has been writing the specifications that developers read. Test plans. Phase decision records. Business requirements. He has been authoring instructions for intelligent agents to act on his entire career — only the agents were human, and the instructions were Word documents and Jira tickets.
+For most of my career, I have been writing the specifications that developers read. Test plans. Decision records. Business requirements. I have been authoring instructions for intelligent agents to act on my entire career — only the agents were human, and the instructions were Word documents and Jira tickets.
 
-The end state of this project is the proof that the same discipline, applied to AI agents instead of human developers, produces real software faster, more transparently, and more flexibly than the old way. The bottleneck has shifted. The skill that used to be treated as support work — writing the specification — is now the load-bearing skill of the practice.
+This project is the proof that the same discipline, applied to AI agents instead of human developers, produces real software — faster, more transparently, and more flexibly than the old way. The bottleneck has shifted. The skill that used to be treated as support work — writing the specification — is now the load-bearing skill of the practice.
 
-Emil did not start this project as a developer. He does not end it as one either. He ends it as a Senior AI Agent Director with a working portfolio and a publishable methodology.
+I did not come to this work as a developer. I am not leaving it as one either. I am a Senior AI Agent Director with a working portfolio and a publishable methodology other people can pick up and use.
 
 ## 5) The architecture, in one paragraph
 

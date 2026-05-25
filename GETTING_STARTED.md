@@ -4,6 +4,46 @@ You don't need to do anything ambitious yet. The goal is **one full loop** of th
 
 Work through the phases below at your own pace. There are no fixed days. If you do it all in a single weekend, fine. If it takes you a couple of weeks, also fine. The phases matter; the calendar doesn't.
 
+## Phase 0.0 — Before anything else, see what you already are
+
+Before you start *doing* anything, you need to *see* what you already have. You walk into this work believing you are someone learning to enter it. The truth is you have been doing senior-grade work for years and have a paper trail to prove it. The fastest way to settle that for yourself is to have an AI agent — the same kind of agent you are about to direct — read your existing project documentation and tell you what it sees.
+
+### Gather the evidence
+Six documents. Three different projects. All written by you in the last few weeks.
+
+From the **cah-pwa** repo (this one, in front of you):
+- `PHASE1_DECISION_RECORD.md`
+- `PHASE2_DECISION_RECORD.md`
+
+From the **grocery-assist** repo:
+- `PROJECT_PLAN.md`
+- `IMPLEMENTATION_BACKLOG.md`
+
+From the **crossword-helper** repo:
+- `TEST_PLAN.md`
+- `SMOKE_TEST.md`
+
+### Hand them to Copilot Chat
+
+Open Copilot Chat in VS Code. Attach the six files (drag them into the chat window, or use the attach-file button). Then paste exactly this prompt:
+
+> "I have attached six documents from three separate projects. All were written by me. They span a multiplayer card game (cah-pwa), a shopping assistant (grocery-assist), and a crossword solver (crossword-helper). I want you to assess them as a portfolio of work and answer four questions honestly, with specific evidence cited from the documents:
+>
+> 1. What seniority level do these documents evidence? Reference specific structural choices, terminology, and decision-making patterns that justify your answer.
+>
+> 2. Looking across all three domains, does the consistency reflect a deliberate, transferable methodology — or just project-specific learning that happens to look similar? Quote evidence either way.
+>
+> 3. Based on this evidence alone, if I walked into your office tomorrow with this portfolio, what role and level would you offer me? Be specific — title, level, comparable industry benchmarks.
+>
+> 4. What gaps would you probe in an interview? Where is this portfolio thin, and what questions would I need to be ready to answer?
+>
+> Be honest. Do not soften. I am not asking for encouragement — I am asking for an assessment."
+
+### Save the response
+When Copilot finishes, copy its full response into a new file in this repo called `PORTFOLIO_ASSESSMENT.md`. Commit it alongside your retros.
+
+Come back to this file any time you doubt whether you belong in this work. The doubt is normal. The assessment is the evidence that contradicts it.
+
 ## Phase 0 — Confirm your view
 
 The "view" is where the wow lands: your CAH game, running in a browser, showing prompt-driven behaviour in the cards and messages in front of you. You need this view working end to end before you start changing anything — there's no point editing prompts if you can't watch them take effect.
@@ -54,7 +94,7 @@ Finally, open `skills/phase-decision-record.md` and put it side by side with `PH
 
 Your first authored skill is `skills/runtime-prompt-replacement.md` — a portable, agent-agnostic instruction set that teaches any agent how to take a piece of hardcoded behaviour in a codebase and replace it with a runtime call to a language model.
 
-This is the **cornerstone** skill. You will reuse it many times over the next 8 weeks — first for the praise messages, then for AI players, then for the Card Czar, then for deck generation. Each reuse refines it. By loop four it will be the first publishable file in your portable library.
+This is the **cornerstone** skill. You will reuse it many times over the course of this project — first for the praise messages, then for AI players, then for the Card Czar, then for deck generation. Each reuse refines it. By loop four it will be the first publishable file in your portable library.
 
 Use `skills/phase-decision-record.md` as your structural template. Copy its sections one by one:
 
@@ -106,6 +146,21 @@ Now open `prompts/praise.txt`. Change "tongue-in-cheek" to "Shakespearean iambic
 
 **That is the wow moment.** The game's behaviour now lives in a text file. You just changed how the game behaves without touching any code.
 
+## Phase 4.5 — When the agent gets it wrong
+
+The agent will misinterpret you. Not often, but reliably enough that you should plan for it. When it happens, the temptation will be to write off the failure as *"the AI is dumb"* and move on. Resist that. Agent misses are the most valuable diagnostic work in this entire project, because every miss points directly at something your brief did not say — and that gap is exactly the thing your analyst muscle was trained to find.
+
+Keep a running file in the repo called `MISSES.md` alongside your retros. Every time the agent produces something that misses the mark, add one entry with four fields:
+
+1. **What the brief said.** Quote it.
+2. **What the agent produced.** Describe what it actually did.
+3. **What the gap was.** Vague acceptance criterion? Missing edge case? Implicit assumption you forgot to state? Unclear scope boundary? Name it precisely.
+4. **What the brief should have said.** Rewrite the brief so the same agent would not make the same miss next time.
+
+This is the work you have done your entire career — finding the gap between intent and instruction, naming it, and tightening the spec until the gap closes. The only thing that has changed is the recipient of the spec. The diagnostic discipline is the same.
+
+By the end of the eight weeks, `MISSES.md` is not a list of failures. It is a catalogue of the exact analyst skills you brought to bear on agent direction — turned into evidence. It is a portfolio piece in its own right.
+
 ## Phase 5 — Commit and retrospect
 
 When you're happy with what Cline produced:
@@ -131,3 +186,9 @@ That retro is the most valuable artefact you'll produce in this whole onboarding
 - **You're not sure if the output is "right".** It is right if it meets the acceptance criteria you wrote in the Issue. If you missed a criterion that turns out to matter, add it to the next Issue. Don't try to write perfect briefs — write briefs that improve every loop.
 
 **Done is better than perfect, every loop of this project.**
+
+## A reminder for the days this feels hard
+
+You are not becoming someone new in this project. You are pointing the craft you already have at a different audience. The decision records, the test plans, the way you break work into phases — none of that is new to you. The only thing that has changed is who reads it.
+
+The chair you have been sitting in for twenty years just got moved to the front of the room. On the hard days, that is the sentence to come back to.
