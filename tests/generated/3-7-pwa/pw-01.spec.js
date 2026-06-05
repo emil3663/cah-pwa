@@ -1,16 +1,21 @@
-// Auto-generated Playwright test stub for PW-01 — manifest.json valid
+// Playwright test: PW-01 — manifest.json is valid and parseable
 const { test, expect } = require('@playwright/test');
 
 test.describe('3-7-pwa - PW-01', () => {
   test('PW-01: manifest.json valid', async ({ page }) => {
-    // Preconditions: (fill as needed)
-    // Description: manifest.json valid
-    // Steps:
-    // 1. (step 1)
-    // 2. (step 2)
-    // Expected: (fill expected result)
-
-    // Example navigation: await page.goto('/');
-    await test.skip(); // remove this once test is implemented
+    const response = await page.goto('/manifest.json');
+    expect(response.ok()).toBeTruthy();
+    const manifest = await response.json();
+    expect(manifest).toHaveProperty('name', 'Cards Against Humanity');
+    expect(manifest).toHaveProperty('short_name', 'CAH');
+    expect(manifest).toHaveProperty('display', 'standalone');
+    expect(manifest).toHaveProperty('start_url');
+    expect(Array.isArray(manifest.icons)).toBe(true);
+    expect(manifest.icons.length).toBeGreaterThanOrEqual(1);
+    // Verify icons reference existing files
+    for (const icon of manifest.icons) {
+      const iconResp = await page.goto('/' + icon.src);
+      expect(iconResp.ok()).toBeTruthy();
+    }
   });
 });
