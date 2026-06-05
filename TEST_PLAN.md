@@ -1,7 +1,7 @@
 # 🃏 Cards Against Humanity — Test Plan
 
-**Version:** 1.1  
-**Last updated:** 2026-05-06  
+**Version:** 1.2  
+**Last updated:** 2026-05-25  
 **Status:** In active development
 
 ---
@@ -267,7 +267,21 @@ project (CC BY-NC-SA 4.0).
 | NS-04 | Join room with NSFW OFF + NSFW-only pool | Join is blocked with explanatory alert | ⬜ |
 | NS-05 | Bot deck assignment in NSFW OFF rooms | Bots fall back to non-NSFW decks | ⬜ |
 
-### 3.6 Friends & Stats
+
+
+### 3.6.1 In-Progress/Completed Game Recovery (Phase 3)
+
+| ID    | Name                                         | Preconditions                | Description                                                                 | Steps                                                                                                                                         | Expected Result                                             | Status |
+|-------|----------------------------------------------|------------------------------|-----------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------|--------|
+| PR-01 | In-progress game appears after leave          | None                         | Verify that leaving a started game adds it to the In Progress list.         | 1. Launch app<br>2. Create a new room<br>3. Start game<br>4. Leave to menu<br>5. Open My Stats         | Game appears in "In Progress" on stats/profile screen      | ⬜     |
+| PR-02 | Resume in-progress game from stats            | PR-01 executed               | Verify that Resume button reopens the correct room/lobby.                   | 1. Open My Stats<br>2. Click Resume on an in-progress game                                                      | Room/lobby for that game is reopened                        | ⬜     |
+| PR-03 | Completed game moves to Completed list        | Game in progress             | Verify that finishing a game moves it to Completed and removes from In Progress. | 1. Resume an in-progress game<br>2. Play until game over<br>3. Open My Stats                                 | Game is removed from In Progress and appears in Completed   | ⬜     |
+| PR-04 | Completed list capped at 5                    | 5+ completed games           | Verify that only the 5 most recent completed games are shown.               | 1. Complete 6+ games<br>2. Open My Stats                                                                | Only 5 most recent games shown in Completed (Last 5)        | ⬜     |
+| PR-05 | In-progress removed on leave                  | Game in progress             | Verify that leaving a game before completion removes it from In Progress.   | 1. Start a new game<br>2. Leave to menu<br>3. Open My Stats                                                 | Game is removed from In Progress list                       | ⬜     |
+| PR-06 | Persistence after reload                      | In-progress/completed games  | Verify that lists persist after page reload.                                | 1. Have at least one in-progress and one completed game<br>2. Reload page<br>3. Open My Stats                | Lists are correct after reload                              | ⬜     |
+| PR-07 | No duplicate entries                         | Multiple joins/leaves        | Verify that duplicate entries are not created for the same room.            | 1. Start/join/leave same room multiple times<br>2. Open My Stats                                            | No duplicate entries in either list                         | ⬜     |
+| PR-08 | Legacy game history unaffected                | Legacy games in profile      | Verify that old game history list still works and is capped at 12.          | 1. Complete 13+ games<br>2. Open My Stats<br>3. Check legacy history section                               | Only 12 most recent legacy games shown                      | ⬜     |
+
 
 | ID | Test | Expected Result | Status |
 |----|------|-----------------|--------|

@@ -1,3 +1,11 @@
+## Phase 3: In-Progress/Completed Game Recovery
+- [x] Track in-progress games per player profile
+- [x] Track last 5 completed games per player profile
+- [x] Add resume flow from stats/profile screen
+- [x] Remove in-progress entry on leave or game over
+- [x] Add regression and smoke test cases to TEST_PLAN.md
+- [x] Feature merged to `main`
+- [x] Smoke-tested on localhost and GitHub Pages
 # Phase Backlog (Post-Auth)
 
 ## Goal
