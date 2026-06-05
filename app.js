@@ -167,6 +167,10 @@ function isAdminCredentialPair(email, password) {
     && String(password || '') === ADMIN_TEST_LOGIN.password;
 }
 
+function isAdminUser() {
+  return Boolean(me?.isAdmin);
+}
+
 function getEffectiveAuthUser() {
   const firebaseUser = window.firebaseAuth?.currentUser;
   if (firebaseUser) return firebaseUser;
