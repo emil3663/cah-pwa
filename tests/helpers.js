@@ -9,7 +9,7 @@
  * @param {Page} page - Playwright page object
  * @param {Object} overrides - Optional profile overrides (e.g., inProgressGames, completedGames)
  */
-export async function seedRegressionProfile(page, overrides = {}) {
+async function seedRegressionProfile(page, overrides = {}) {
   const regressionProfile = {
     id: 'local-regression-user-v1',
     name: 'Regression QA',
@@ -45,7 +45,7 @@ export async function seedRegressionProfile(page, overrides = {}) {
  * @param {Page} page - Playwright page object
  * @param {Object} profileData - Player profile to seed (merged with defaults)
  */
-export async function seedPlayerProfile(page, profileData = {}) {
+async function seedPlayerProfile(page, profileData = {}) {
   const defaultProfile = {
     id: 'test-user-1',
     name: 'Test Player',
@@ -78,7 +78,7 @@ export async function seedPlayerProfile(page, profileData = {}) {
  * @param {Page} page - Playwright page object
  * @param {Number} timeoutMs - Max time to wait (default 10000)
  */
-export async function waitForAppReady(page, timeoutMs = 10000) {
+async function waitForAppReady(page, timeoutMs = 10000) {
   await page.waitForFunction(() => window.__APP_READY__ === true, { timeout: timeoutMs });
 }
 
@@ -88,7 +88,7 @@ export async function waitForAppReady(page, timeoutMs = 10000) {
  * @param {Page} page - Playwright page object
  * @param {Array} games - Array of game objects to add to inProgressGames
  */
-export async function seedInProgressGames(page, games = []) {
+async function seedInProgressGames(page, games = []) {
   await page.addInitScript((gameList) => {
     const profile = JSON.parse(localStorage.getItem('cah_player')) || {};
     profile.inProgressGames = gameList;
@@ -101,7 +101,7 @@ export async function seedInProgressGames(page, games = []) {
  * @param {Page} page - Playwright page object
  * @param {Array} games - Array of game objects to add to completedGames
  */
-export async function seedCompletedGames(page, games = []) {
+async function seedCompletedGames(page, games = []) {
   await page.addInitScript((gameList) => {
     const profile = JSON.parse(localStorage.getItem('cah_player')) || {};
     profile.completedGames = gameList;
@@ -114,7 +114,7 @@ export async function seedCompletedGames(page, games = []) {
  * @param {Object} opts - Options for game
  * @returns {Object} Game object for seeding
  */
-export function createTestGame(opts = {}) {
+function createTestGame(opts = {}) {
   const timestamp = opts.timestamp || new Date().toISOString();
   return {
     roomCode: opts.roomCode || 'ABC123',
@@ -124,3 +124,12 @@ export function createTestGame(opts = {}) {
     timestamp: timestamp
   };
 }
+
+module.exports = {
+  seedRegressionProfile,
+  seedPlayerProfile,
+  waitForAppReady,
+  seedInProgressGames,
+  seedCompletedGames,
+  createTestGame,
+};

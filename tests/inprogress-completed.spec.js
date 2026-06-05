@@ -20,8 +20,9 @@ test.describe('In-Progress/Completed Game Recovery', () => {
     await page.goto('/');
     await waitForAppReady(page);
     
-    // Navigate to stats
+    // Navigate to stats and wait for content
     await page.click('#btnStats');
+    await expect(page.locator('#inProgressGames')).not.toBeEmpty();
     
     // Verify in-progress section shows the game
     await expect(page.locator('#inProgressGames')).toContainText('Test Room');
@@ -42,14 +43,17 @@ test.describe('In-Progress/Completed Game Recovery', () => {
     // Open stats
     await page.click('#btnStats');
     
+    // Wait for the game row to appear (specific text, not empty fallback)
+    await expect(page.locator('#inProgressGames')).toContainText('Resume Test');
+    
     // Click Resume button on the game
     const resumeButton = page.locator('#inProgressGames button:has-text("Resume")').first();
     await expect(resumeButton).toBeVisible();
     await resumeButton.click();
     
-    // Verify page changes (would navigate to room/lobby in real flow)
-    // For deterministic testing, we verify the button was clickable
-    await expect(page.locator('#btnStats')).toBeVisible(); // Still on page, or navigated
+    // Resume tries to navigate; room won't exist so stays on stats.
+    // Verify the button was clickable without error.
+    await expect(page.locator('#inProgressGames')).toContainText('Resume Test');
   });
 
   test('PR-03: Completed game moves to Completed list', async ({ page }) => {
@@ -63,8 +67,9 @@ test.describe('In-Progress/Completed Game Recovery', () => {
     await page.goto('/');
     await waitForAppReady(page);
     
-    // Navigate to stats
+    // Navigate to stats and wait for renderStats to populate
     await page.click('#btnStats');
+    await expect(page.locator('#completedGames')).not.toBeEmpty();
     
     // Verify completed section shows the game
     await expect(page.locator('#completedGames')).toContainText('Completed Game');
@@ -88,7 +93,7 @@ test.describe('In-Progress/Completed Game Recovery', () => {
     // Navigate to stats
     await page.click('#btnStats');
     
-    // Verify both lists are visible and contain their games
+    // Wait for game content (not fallback text)
     await expect(page.locator('#inProgressGames')).toContainText('Persist In Progress');
     await expect(page.locator('#completedGames')).toContainText('Persist Completed');
     
