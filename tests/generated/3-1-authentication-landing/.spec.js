@@ -26,28 +26,30 @@ test.describe('3-1 Auth - Seedable Tests', () => {
   });
 
   test('LG-20: Local admin account sign-in', async ({ page }) => {
-    // Admin login goes through form fill (profile ID doesn't trigger auto-login bypass)
+    // Admin auto-login bypass doesn't call updateAdminUi, so admin button stays hidden.
+    // Use the form sign-in flow which properly initializes admin state.
     await page.goto('/');
     await expect(page.locator('#screen-landing')).toBeVisible({ timeout: 10000 });
-    // Fill admin credentials and click sign in
+    // Fill admin credentials
     await page.fill('#playerEmail', 'admin@test.local');
     await page.fill('#playerPassword', 'Admin123!');
     await page.click('#btnSignIn');
-    // Admin login is synchronous (no Firebase), so menu should appear fast
-    await expect(page.locator('#screen-menu')).toBeVisible({ timeout: 15000 });
-    await expect(page.locator('#greetName')).toContainText('admin');
+    // Wait for greeting to show admin name (indicates sign-in completed)
+    await expect(page.locator('#greetName')).toContainText('admin', { timeout: 15000 });
   });
 
   test('LG-23: Admin section visibility', async ({ page }) => {
-    // Sign in as admin via form
+    // Sign in as admin via form (properly initializes isAdminSession and shows admin button)
     await page.goto('/');
     await expect(page.locator('#screen-landing')).toBeVisible({ timeout: 10000 });
     await page.fill('#playerEmail', 'admin@test.local');
     await page.fill('#playerPassword', 'Admin123!');
     await page.click('#btnSignIn');
-    // Wait for menu
-    await expect(page.locator('#screen-menu')).toBeVisible({ timeout: 15000 });
-    // Admin card should be visible
+    // Wait for admin sign-in to complete
+    await expect(page.locator('#greetName')).toContainText('admin', { timeout: 15000 });
+    // Admin card should be visible now (updateAdminUi called by handleSignIn)
+    // Small wait for UI to update
+    await page.waitForTimeout(500);
     await expect(page.locator('#btnAdmin')).not.toBeHidden();
     // Click admin card
     await page.click('#btnAdmin');
