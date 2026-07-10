@@ -1,0 +1,11 @@
+<!--
+  Prompt: praise
+  Purpose: One-line, tongue-in-cheek roast of the round's winning combo.
+  Inputs: {{black}} — the black card prompt text
+          {{whites}} — the winning white card text(s), joined with " / "
+  Output: a single sentence, no quotation marks, no markdown.
+  Last updated: 2026-07-10
+-->
+Write one short, dry, tongue-in-cheek roast of this Cards Against Humanity
+answer. Black card: "{{black}}". Winning answer: "{{whites}}".
+Respond with exactly one sentence. No quotation marks. No preamble.

@@ -2468,7 +2468,7 @@ document.getElementById('btnConfirmWinner').addEventListener('click', () => {
   resolveRound(gameState.pendingWinnerId);
 });
 
-function resolveRound(winnerId, fromServer = false) {
+async function resolveRound(winnerId, fromServer = false) {
   const winner = gameState.room.players.find(p => p.id === winnerId);
   if (!winner) {
     nextRound();
@@ -2500,7 +2500,13 @@ function resolveRound(winnerId, fromServer = false) {
 
   const bc = gameState.currentBlack;
   const texts = getSubmissionTexts(winnerId).filter(Boolean);
-  const praise = WINNER_PRAISES[Math.floor(Math.random() * WINNER_PRAISES.length)];
+  let praise;
+  try {
+    praise = await ask('praise', { black: bc.text, whites: texts.join(' / ') });
+  } catch (err) {
+    console.warn('Gemini praise call failed, falling back to WINNER_PRAISES:', err);
+    praise = WINNER_PRAISES[Math.floor(Math.random() * WINNER_PRAISES.length)];
+  }
 
   document.getElementById('resultBlack').textContent = bc.text;
   document.getElementById('resultWhite').textContent = texts.join(' / ');

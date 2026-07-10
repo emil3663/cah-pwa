@@ -7,6 +7,8 @@ const ASSETS = [
   './style.css?v=30',
   './app.js?v=30',
   './cards.js?v=30',
+  './js/gemini.js?v=30',
+  './prompts/praise.txt',
   './manifest.json',
   './icons/bot-skeeter.svg',
   './icons/bot-sally.svg',

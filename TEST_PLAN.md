@@ -189,6 +189,8 @@ project (CC BY-NC-SA 4.0).
 | GP-20 | Reroll round limit | Max 2 rerolls per round enforced | ⬜ |
 | GP-21 | Reroll game limit | Max 5 rerolls per game enforced | ⬜ |
 | GP-22 | Mixed deck pool draw | With 2+ decks in user pool, opening hand includes cards from multiple selected decks over repeated rounds | ⬜ |
+| GP-23 | Live praise generation | With a valid GEMINI_API_KEY, round-winner praise is freshly generated per round via `ask('praise', ...)` rather than pulled from WINNER_PRAISES | ⬜ |
+| GP-24 | Praise fallback on API failure | With GEMINI_API_KEY blank (or the Gemini call otherwise failing), round resolves normally and praise falls back to a WINNER_PRAISES random pick, with no visible error to the player | ⬜ |
 
 ### 3.5 Game Over
 
