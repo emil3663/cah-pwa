@@ -927,8 +927,36 @@ function getDeckById(deckId) {
   return getAllDecks().find(d => d.id === deckId) || null;
 }
 
+function getDeckTokenCost(deck) {
+  if (!deck) return Infinity;
+  const isFeaturedSpecial = deck.id === FEATURED_SPECIAL_DECK_ID;
+  const canUseDiscount = isFeaturedSpecial && !me.deckProgress.featuredSpecialClaimed;
+  return canUseDiscount ? FEATURED_SPECIAL_DISCOUNT_TOKENS : deck.tokenCost;
+}
+
+function getDeckCoinCost(deck) {
+  return getDeckTokenCost(deck) * TOKEN_TO_COIN;
+}
+
 function ownsDeck(deckId) {
   return Array.isArray(me?.deckProgress?.ownedDeckIds) && me.deckProgress.ownedDeckIds.includes(deckId);
+}
+
+function getDeckCategoryMeta(categoryId) {
+  return (CAH_DECK_CATEGORIES || []).find(c => c.id === categoryId) || null;
+}
+
+function isDeckNsfw(deckId) {
+  const deck = getDeckById(deckId);
+  if (!deck) return false;
+  const category = getDeckCategoryMeta(deck.categoryId);
+  return Boolean(category?.nsfw);
+}
+
+function canUseDeckInRoom(deckId, allowNsfw) {
+  if (!deckId) return false;
+  if (allowNsfw) return true;
+  return !isDeckNsfw(deckId);
 }
 
 function renderStats() {
@@ -989,13 +1017,22 @@ window.resumeGame = function(roomCode) {
 function getPlayableDeckPoolForRoom(allowNsfw) {
   const deckIds = me?.deckProgress?.activeDeckIds || [];
   const pool = Array.isArray(deckIds) ? deckIds.filter(Boolean) : [];
-  if (!pool.length) return [FREE_STARTER_DECK_ID];
-  return pool;
+  const allowed = pool.filter(deckId => canUseDeckInRoom(deckId, allowNsfw));
+  if (!allowed.length) return [FREE_STARTER_DECK_ID];
+  return allowed;
 }
 
 function hasCompatibleDeckForRoom(allowNsfw) {
   if (isAdminUser()) return true;
   return getPlayableDeckPoolForRoom(allowNsfw).length > 0;
+}
+
+function getSelectedDeckPool() {
+  const profile = me?.deckProgress || {};
+  const activePool = Array.isArray(profile.activeDeckIds) ? profile.activeDeckIds : [];
+  const legacy = profile.activeDeckId ? [profile.activeDeckId] : [];
+  const combined = [...new Set([...activePool, ...legacy])];
+  return combined.filter(id => ownsDeck(id));
 }
 
 function hasActiveDeck() {
