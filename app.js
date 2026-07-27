@@ -1778,6 +1778,7 @@ console.log('[TEST-BYPASS] ═════════════════�
 document.addEventListener('DOMContentLoaded', () => {
   if (isLocalRegressionSession) {
     const debug = document.createElement('div');
+    debug.id = 'testModeDebugBadge';
     debug.style.cssText = 'position:fixed;top:0;left:0;background:#0f0;padding:5px;z-index:9999;font-size:12px;';
     debug.textContent = 'TEST MODE: Regression bypass active';
     document.body.appendChild(debug);

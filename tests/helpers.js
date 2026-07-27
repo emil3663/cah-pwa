@@ -73,6 +73,28 @@ async function seedPlayerProfile(page, profileData = {}) {
 }
 
 /**
+ * If the current player is Card Czar (always true for the room host in round 1,
+ * since czarIndex starts at 0), nominate the first submission and confirm it as
+ * winner so the round advances. No-op if the player isn't Czar.
+ * @param {Page} page - Playwright page object
+ * @returns {Promise<boolean>} true if a Czar round was resolved, false if not Czar
+ */
+async function resolveCzarRoundIfCzar(page) {
+  if (!(await page.locator('#czarBanner').isVisible())) return false;
+  await page.locator('.submission-card').first().waitFor({ state: 'visible', timeout: 5000 });
+  await page.locator('.submission-card').first().click();
+  await page.click('#btnConfirmWinner');
+  await page.locator('#screen-result').waitFor({ state: 'visible', timeout: 10000 });
+  // resolveRound() only enables/shows btnNextRound when the match continues;
+  // on a game-ending round it stays hidden and showGameOver() fires instead.
+  const nextRoundBtn = page.locator('#btnNextRound');
+  if (await nextRoundBtn.isVisible()) {
+    await nextRoundBtn.click();
+  }
+  return true;
+}
+
+/**
  * Wait for the app to signal readiness.
  * Should be called after page.goto() and seedPlayerProfile().
  * @param {Page} page - Playwright page object
@@ -132,4 +154,5 @@ module.exports = {
   seedInProgressGames,
   seedCompletedGames,
   createTestGame,
+  resolveCzarRoundIfCzar,
 };

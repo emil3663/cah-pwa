@@ -1,7 +1,7 @@
 // Playwright tests: QS-01 through QS-13 — Quick-Run Smoke Checklist
 // Seeds the regression profile and runs through all smoke steps.
 const { test, expect } = require('@playwright/test');
-const { seedRegressionProfile, waitForAppReady, createTestGame } = require('../../helpers');
+const { seedRegressionProfile, waitForAppReady, createTestGame, resolveCzarRoundIfCzar } = require('../../helpers');
 
 test.describe('7-2 Quick-Run Smoke', () => {
   test('QS-01: Open app with cache-bust query param', async ({ page }) => {
@@ -31,8 +31,8 @@ test.describe('7-2 Quick-Run Smoke', () => {
     await expect(page.locator('#screen-menu')).toBeVisible();
     // Greeting should show Regression QA
     await expect(page.locator('#greetName')).toContainText('Regression QA');
-    // Verify test-mode badge shows (use first match to avoid strict mode with 2 elements)
-    await expect(page.locator('div:has-text("TEST MODE")').first()).toBeVisible();
+    // Verify test-mode badge shows (scoped id, not a text match that can hit hidden ancestors)
+    await expect(page.locator('#testModeDebugBadge')).toBeVisible();
   });
 
   test('QS-04: Open Deck Store', async ({ page }) => {
@@ -113,6 +113,9 @@ test.describe('7-2 Quick-Run Smoke', () => {
     await page.click('#btnStartGame');
     // Should transition to game screen
     await expect(page.locator('#screen-game')).toBeVisible({ timeout: 15000 });
+    // Room host is always Czar in round 1 (czarIndex starts at 0) and has no hand to
+    // play that round — resolve it so round 2 begins with the host as a submitter.
+    await resolveCzarRoundIfCzar(page);
     // Hand should have cards
     await expect(page.locator('#handCards')).not.toBeEmpty();
     // Double-tap first card
@@ -127,15 +130,17 @@ test.describe('7-2 Quick-Run Smoke', () => {
     await seedRegressionProfile(page);
     await page.goto('/');
     await waitForAppReady(page);
-    // Quick create + start
+    // Quick create + start. roundsToWin=2 so the game doesn't end when the host
+    // (always Czar in round 1) resolves that round — round 2 is where the host submits.
     await page.click('#btnCreateRoom');
     await page.fill('#roomName', 'QS-10 Game');
     await page.fill('#aiPlayers', '2');
-    await page.fill('#roundsToWin', '1');
+    await page.fill('#roundsToWin', '2');
     await page.click('#btnStartRoom');
     await expect(page.locator('#screen-lobby')).toBeVisible({ timeout: 10000 });
     await page.click('#btnStartGame');
     await expect(page.locator('#screen-game')).toBeVisible({ timeout: 15000 });
+    await resolveCzarRoundIfCzar(page);
     // Select a card
     const firstCard = page.locator('#handCards .white-card').first();
     await firstCard.dispatchEvent('dblclick');
@@ -150,21 +155,28 @@ test.describe('7-2 Quick-Run Smoke', () => {
   });
 
   test('QS-11: Judge drag to Winner Zone', async ({ page }) => {
-    // This flow requires the user to actually be Czar. In solo with bots,
-    // the bot will be Czar some rounds. Just verify the game screen works.
+    // Room host is always Czar in round 1 (czarIndex starts at 0), so this is the
+    // natural place to exercise the judge flow: nominate a submission and confirm it.
     await seedRegressionProfile(page);
     await page.goto('/');
     await waitForAppReady(page);
     await page.click('#btnCreateRoom');
     await page.fill('#roomName', 'QS-11 Game');
     await page.fill('#aiPlayers', '1');
-    await page.fill('#roundsToWin', '1');
+    await page.fill('#roundsToWin', '3');
     await page.click('#btnStartRoom');
     await expect(page.locator('#screen-lobby')).toBeVisible({ timeout: 10000 });
     await page.click('#btnStartGame');
     await expect(page.locator('#screen-game')).toBeVisible({ timeout: 15000 });
-    // Game started successfully
-    await expect(page.locator('#handCards')).not.toBeEmpty();
+    // Host is Czar this round
+    await expect(page.locator('#czarBanner')).toBeVisible();
+    // Bot submission is ready to judge
+    await expect(page.locator('.submission-card').first()).toBeVisible({ timeout: 5000 });
+    await page.locator('.submission-card').first().click();
+    await expect(page.locator('#btnConfirmWinner')).toBeEnabled();
+    await page.click('#btnConfirmWinner');
+    // Round resolves and result screen appears
+    await expect(page.locator('#screen-result')).toBeVisible({ timeout: 10000 });
   });
 
   test('QS-12: Game over appears and stats update', async ({ page }) => {
@@ -179,13 +191,16 @@ test.describe('7-2 Quick-Run Smoke', () => {
     await expect(page.locator('#screen-lobby')).toBeVisible({ timeout: 10000 });
     await page.click('#btnStartGame');
     await expect(page.locator('#screen-game')).toBeVisible({ timeout: 15000 });
-    // Play a card if we're not czar
-    const firstCard = page.locator('#handCards .white-card').first();
-    if (await firstCard.isVisible()) {
-      await firstCard.dispatchEvent('dblclick');
+    // With roundsToWin=1, the host (Czar in round 1) resolving this round is what
+    // ends the game — the winning AI reaches the 1-point target immediately.
+    const resolvedAsCzar = await resolveCzarRoundIfCzar(page);
+    if (!resolvedAsCzar) {
+      const firstCard = page.locator('#handCards .white-card').first();
+      if (await firstCard.isVisible()) {
+        await firstCard.dispatchEvent('dblclick');
+      }
     }
-    // Game will resolve quickly with 1 round to win
-    await page.waitForTimeout(5000);
+    await expect(page.locator('#screen-gameover')).toBeVisible({ timeout: 10000 });
   });
 
   test('QS-13: Stats screen shows recent games', async ({ page }) => {
