@@ -1,3 +1,17 @@
 node_modules/
 test-results/
 .vscode/
+
+# Personal / non project-specific material — keep out of this public repo
+CV Stuff/
+CV_Stuff/
+*_CV.docx
+COVER_LETTER_*.md
+
+# AI agent session artifacts
+conversation_history_last.json
+ui_messages_last.json
+task_metadata_last.json
+focus_chain_last.md
+*_last.json
+*_last.md
