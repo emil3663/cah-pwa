@@ -1,6 +1,9 @@
 {
   "scripts": {
-    "test:playwright": "npx playwright test"
+    "test:playwright": "npx playwright test",
+    "test": "node --test scripts/test/",
+    "test:generate": "node scripts/generate_playwright_tests.js",
+    "test:check": "node scripts/generate_playwright_tests.js --check"
   },
   "devDependencies": {
     "@playwright/test": "^1.60.0",
