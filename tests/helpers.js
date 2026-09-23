@@ -39,6 +39,28 @@ async function seedRegressionProfile(page, overrides = {}) {
   }, profile);
 }
 
+const REGRESSION_LOGIN = { email: 'regression@test.local', password: 'Regression123!' };
+
+/**
+ * Sign in through the real landing-page form using the local regression
+ * credential pair (app.js's isRegressionCredentialPair/canUseRegressionLogin
+ * bypass, private-network hosts only, never touches firebaseAuth). Unlike
+ * seedRegressionProfile above, this exercises the actual sign-in UI and
+ * lands on a freshly-created regression profile (zero owned decks,
+ * freeStarterClaimed: false) rather than the fixed, already-provisioned
+ * profile seedRegressionProfile seeds directly into localStorage - use this
+ * one when a test needs to observe or drive the sign-in flow itself, or
+ * needs the account's real starting state (e.g. deck-gating tests).
+ * @param {Page} page - Playwright page object
+ */
+async function signInAsRegression(page) {
+  await page.goto('/');
+  await page.getByPlaceholder('Email address').fill(REGRESSION_LOGIN.email);
+  await page.getByPlaceholder('Password (6+ characters)').fill(REGRESSION_LOGIN.password);
+  await page.getByRole('button', { name: 'Sign In', exact: true }).click();
+  await page.getByRole('heading', { name: 'What would you like to do?' }).waitFor();
+}
+
 /**
  * Seed localStorage with a player profile before page load.
  * Use with page.addInitScript() to inject before app.js runs.
@@ -149,6 +171,7 @@ function createTestGame(opts = {}) {
 
 module.exports = {
   seedRegressionProfile,
+  signInAsRegression,
   seedPlayerProfile,
   waitForAppReady,
   seedInProgressGames,
