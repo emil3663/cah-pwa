@@ -69,10 +69,52 @@ custom visual on top, no `display:none`), or add `role="radiogroup"` /
 `aria-checked` to the custom control if the native inputs must stay
 `display:none` for some other reason.
 
+## KI-03: `js/gemini.js`'s Gemini call has no timeout, so a hung request can stall the round-result screen indefinitely
+
+**Where:** `js/gemini.js:16` (the `fetch` call to the Gemini endpoint,
+inside `ask()`); caller `app.js` (`resolveRound()`, the
+`ask('praise', ...)` call).
+
+**Found by:** flagged as an aside during Phase 25 dogfooding, while
+confirming this app as a viable target (see the testforge repo's
+`docs/decisions/phase-25-cah-pwa-dogfooding-backlog.md`, "Aside, not part
+of this phase's scope") — not by either skill's FINDING tests, unlike
+KI-01/KI-02 above. Verified directly against this repo's current code on
+2026-09-23 rather than taken on the original note's word.
+
+**What happens:** `ask()`'s `fetch` call has no `AbortController` or
+timeout, and a browser does not time out `fetch()` on its own — a slow or
+hung response from the Gemini endpoint leaves the awaited promise pending
+indefinitely, with nothing to reject it. The one current caller
+(`resolveRound()` in `app.js`) already wraps `ask('praise', ...)` in a
+try/catch with a static `WINNER_PRAISES` fallback, so this is narrower
+than "uncaught" — most real failures (a 4xx/5xx status, a thrown error)
+are already handled reasonably. But `catch` only fires on rejection, never
+on a promise that just never settles, so the missing timeout is the one
+gap that fallback can't reach: a hung request stalls the round-result
+screen (`showScreen('result')` never runs) with no visible error and no
+fallback ever triggering. Separately, and lower severity: there's no
+retry, so a single transient failure skips straight to the static
+fallback instead of getting one quick retry first — worth bundling with
+the timeout fix since both touch the same function, not worth its own
+ticket.
+
+**Suggested fix direction (not implemented):** wrap the `fetch` call in
+`gemini.js` with `AbortSignal.timeout(...)` (or an `AbortController` on
+older runtimes) set to a few seconds past typical Gemini Flash latency,
+and have the abort reject with a plain `Error` so `app.js`'s existing
+catch handles it exactly like any other failure — no change needed on the
+caller side. A single bounded retry before falling back is a reasonable
+addition at the same time, since a working fallback already exists to
+land on either way.
+
 ---
 
-Both are real app defects, not test bugs — see
+All three are real app defects, not test bugs. KI-01 and KI-02 — see
 `examples/comparison-cah-pwa.md` (testforge repo) for the full comparison
 context, including how three different test approaches (TestForge's
 generated suite, this skill, and this repo's own generated suite) each
-reacted differently to the same underlying issues.
+reacted differently to the same underlying issues. KI-03 was caught by
+direct code review during the same phase, not by any of those three test
+approaches — worth noting since it's a real gap none of them happened to
+surface either.
