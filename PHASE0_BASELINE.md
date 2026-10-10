@@ -88,7 +88,7 @@ It does not yet support a claim that the complete product is release-ready.
 | Product direction | `PROJECT_BRIEF.md` and `PRODUCT_VISION.md` record the original runtime-prompt thesis. | Emil's 2026-10-10 decision supersedes it for v1. README and the metadata on the brief/vision now identify the new direction and preserve the old thesis as historical context. |
 | Core game | `TEST_PLAN.md` and README describe auth, rooms, decks, gameplay, stats, and game recovery; QS-01..QS-13 passed locally. | A broad local happy-path slice is implemented and tested. Deployed and real-user journeys still need verification. |
 | Multiplayer | `PHASE_BACKLOG.md` says the Firestore multiplayer foundation and game loop are complete; the smoke tests cover a local AI game, not two authenticated clients. | Treat cross-client multiplayer completion as reported, not currently verified by the automated baseline. |
-| Custom decks | `app.js` contains custom-deck input parsing, minimum-card validation, import, ownership updates, deletion, and store rendering. | Implementation paths are present. The `DE-24`, `DE-28`, and `DE-29` checkmarks were not exercised by the Phase 0 run and are now marked unverified in `TEST_PLAN.md`. The selected v1 documents do not yet settle whether custom packs are in scope. |
+| Custom decks | `app.js` contains custom-deck input parsing, minimum-card validation, import, ownership updates, deletion, and store rendering. | Implementation paths are present. The `DE-24`, `DE-28`, and `DE-29` checkmarks were not exercised by the Phase 0 run and are now marked unverified in `TEST_PLAN.md`. Emil approved retaining custom-deck functionality while excluding it from v1 acceptance and release gates. |
 | Game history | `app.js` records end-of-game history and renders in-progress/completed lists; four recovery tests cover list display/resume affordance and persistence. | Recovery-list behavior has focused local coverage. Detailed all-time history content and the 12-entry retention limit are not verified by the Phase 0 baseline. |
 | Prompt integration | `prompts/praise.txt` exists; `app.js` calls `ask('praise', ...)`; `js/gemini.js` reads a prompt file and makes a Gemini request. The configured API key is blank. | **Out of v1 scope by decision.** Emil selected a non-LLM product direction on 2026-10-10. Retire the runtime prompt/Gemini path and reconcile the product documentation; verify no other behavior depends on it. |
 | Runtime model failure handling | `KNOWN_ISSUES.md` records an unbounded Gemini request; the helper in `js/gemini.js` has no timeout. | The timeout issue is superseded by the decision to remove runtime LLM calls from v1. Remove the dependency rather than invest in a timeout path, unless a later approved scope reintroduces it. |
@@ -140,7 +140,7 @@ It does not yet support a claim that the complete product is release-ready.
 - The room document also contains private player decks and unrevealed
   submissions. Firestore rules cannot hide selected fields from a document
   reader, so member-only access to the current shared document would still
-  expose all of that data. Phase 2 must separate private player data from
+  expose all of that data. Phase 3 must separate private player data from
   shared room/game state before enforcing per-player read restrictions.
 - Chat is stored as one document per room with an array of up to 50 messages.
   Message length and send throttling are enforced in client code, not by the
@@ -148,15 +148,16 @@ It does not yet support a claim that the complete product is release-ready.
 - `TEST_PLAN.md` CH-10 is an unimplemented, skipped placeholder for an
   unauthenticated write denial. No implemented regression case verifies
   nonmember denial, host-only operations, Card Czar adjudication, or own-player
-  submission constraints. Phase 2 authorization cases are now specified in
+  submission constraints. Phase 3 authorization cases are now specified in
   `TEST_PLAN.md` as planned, unimplemented rules tests.
 - Approved Phase 0 policy: only room members can read shared room/game state;
   there is no nonmember open-room browser. Host authority covers lobby
   management, game start, and round advancement. The current Card Czar alone
   selects the winner. Each member can write only their own submission and can
   use room chat. Members can read shared state and their own private hand.
-  Submissions remain private from other players until the Card Czar opens
-  judging; then the submissions are visible to the room.
+  The current Card Czar can read submissions for adjudication; other members
+  cannot read them until the Card Czar opens judging, after which submissions
+  are visible to the room.
 - No Firestore rules, authentication code, schema, or room-browser behavior was
   changed in Phase 0. The implementation path for safe room-code joining and
   member discovery must be designed without granting pre-join access to room
@@ -167,8 +168,8 @@ It does not yet support a claim that the complete product is release-ready.
 Emil approved this hierarchy on 2026-10-10:
 
 1. **Product outcome and v1 boundary:** the latest approved phase decision
-   record; until Phase 0 is locked, use decisions recorded in
-   `PHASE0_PLAN.md`. The old project brief is historical until reconciled.
+   record; `PHASE0_PLAN.md` records Phase 0 closeout work. The old project
+   brief is historical until reconciled.
 2. **Sequencing and active work:** approved `PHASE_N_PLAN.md` files and their
    decision records. `PHASE_BACKLOG.md` is a candidate backlog, not evidence of
    completion.
@@ -243,6 +244,14 @@ authorization.
     from other players until the Card Czar opens judging, when the submissions
     become visible to the room. The Firestore data layout must separate private
     records before member-only rules can provide these guarantees.
+12. **Approved in the Phase 0 scope review:** custom-deck import and play remain
+    available but are outside v1 acceptance and release gates. This decision
+    does not authorize removing the existing feature.
+13. **Approved as the Phase 0 roadmap proposal:** complete the test-foundation
+    and non-LLM reset first, then local Classic gameplay, room-data isolation
+    and authorization, deployed two-client multiplayer, and finally PWA,
+    accessibility, and release readiness. Each implementation phase requires
+    its own reviewed plan and decision record.
 
 The approved local acceptance criteria are in `PHASE0_PLAN.md` and mapped in
 `TEST_PLAN.md`; the full scenario is not yet implemented as a regression test.
@@ -269,4 +278,4 @@ request or API key is a prerequisite for round completion.
    decision record; keep Wild and Question First out of v1 acceptance.
 6. Convert the approved outcome and risk disposition into reviewed phase
    plans, acceptance criteria, and dependencies, including a safe room-code
-   join/data-separation design before Phase 2 implementation.
+   join/data-separation design before Phase 3 implementation.

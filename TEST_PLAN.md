@@ -66,7 +66,7 @@ status and verification limits.
 | Service worker (offline) | ✅ Done | Caches app shell |
 | Real-time multiplayer | ⚠️ Code exists; cross-client unverified | Firebase room/game sync is present; two-account end-to-end verification remains a pre-release gate |
 | In-game chat | ⚠️ Code exists; authorization unverified | Chat UI and Firestore operations exist; room-member rules and two-client delivery remain unverified |
-| Custom card packs | ⚠️ Import/delete code exists; baseline coverage unverified | Import, validation, ownership, and deletion paths are present; confirm supported behavior and v1 relevance in the later deck review |
+| Custom card packs | ⚠️ Available; outside v1 acceptance | Import, validation, ownership, and deletion paths are present; current behavior is not covered by the Phase 0 baseline |
 | Spectator mode | ❌ Not started | |
 | Kick / ban player | ❌ Not started | |
 | Game history | ⚠️ History code exists; coverage is partial | End-of-game history and in-progress/completed lists are present; history retention/details are not covered by the current baseline |
@@ -165,7 +165,7 @@ status and verification limits.
 | CH-09 | Chat cleared on room leave | Leaving the room stops listener; stale messages not shown on re-enter | ⬜ |
 | CH-10 | Unauthenticated blocked | Firestore rejects write from unauthenticated client (rules test) | ⬜ |
 
-### 3.3.1 Firestore Authorization (Phase 2)
+### 3.3.1 Firestore Authorization (Phase 3)
 
 These are planned Firestore rules/data-isolation tests, not evidence of current
 behavior. Run them against the Firebase Emulator before relying on the rules.
@@ -179,7 +179,7 @@ behavior. Run them against the Firebase Emulator before relying on the rules.
 | FA-05 | Own-player submission | A member can submit only as their own player identity; they cannot submit as the Card Czar or another player | ⬜ |
 | FA-06 | Private hand isolation | A member can read their own hand but cannot read another player's hand | ⬜ |
 | FA-07 | Member-only room chat | Members can read and write room chat; nonmembers and unauthenticated clients are denied | ⬜ |
-| FA-08 | Submission reveal timing | Other players cannot read submissions while picking; after all eligible players submit, the current Card Czar opens judging and all members can read the submissions, but only the Card Czar can select the winner | ⬜ |
+| FA-08 | Submission reveal timing | The current Card Czar can read submissions for adjudication; other members cannot read them until judging opens, then all members can read them; only the Card Czar can select the winner | ⬜ |
 
 ### 3.4 Game Modes
 
@@ -244,6 +244,8 @@ behavior. Run them against the Firebase Emulator before relying on the rules.
 Emil approved this local gameplay scenario on 2026-10-10. It is not an
 implementation authorization and does not verify Firebase multiplayer. It
 maps to GP-01 through GP-09, GP-12/13, and GO-01 through GO-04/13.
+Custom-deck import and play remain available but are outside this v1 acceptance
+and its release gates.
 
 1. Run one human-controlled player and two AI bots in a Classic room with
    rounds-to-win set to two. The existing regression-account path is acceptable

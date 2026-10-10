@@ -26,7 +26,7 @@ into phases with explicit dependencies, risks, and exit criteria.
 - Identify release-critical product, test, security, PWA, and portfolio risks.
 - Agree the v1 product outcome, non-LLM scope, release boundary, and portfolio
   evidence.
-- Produce a proposed roadmap and identify decisions that require Emil's approval.
+- Produce a dependency-aware roadmap and record approved decisions.
 
 ## 4. Out of scope
 
@@ -43,10 +43,10 @@ into phases with explicit dependencies, risks, and exit criteria.
 |---|---|---|---|
 | P0-01 | Review project goals, backlog, status documents, risks, and test assets | Evidence-based current-state inventory | Complete |
 | P0-02 | Run the full local Playwright suite and record pass/fail/skip totals | Dated test baseline with limitations | Complete |
-| P0-03 | Reconcile conflicting and stale documents; identify a source of truth | List of updates needed and proposed ownership for status | In progress; hierarchy approved, stale Test Plan sections labelled historical, and Firebase/chat/custom-deck/history evidence reconciled; broader feature status and custom-pack v1 scope remain to be reviewed |
+| P0-03 | Reconcile conflicting and stale documents; identify a source of truth | List of updates needed and proposed ownership for status | In progress; hierarchy approved, stale Test Plan sections labelled historical, Firebase/chat/custom-deck/history evidence reconciled, and custom-deck v1 scope decided; broader feature status still needs evidence-based reconciliation |
 | P0-04 | Triage known defects and unverified release/security claims | Prioritized risk register with verification needs | In progress; KI-01 reload and sign-in field loss reproduced locally; room/chat access policy and test cases are approved, while deployed behavior and rules remain unverified |
-| P0-05 | Agree the v1 outcome, target users, and release boundary | Approved product outcome and measurable success criteria | Outcome, boundaries, and Classic gameplay acceptance approved; two-client Firebase remains a separate release gate |
-| P0-06 | Build and review dependency-aware delivery phases | Approved roadmap, phase goals, dependencies, and exit criteria | Draft sequence documented; details pending P0-03/04/05 |
+| P0-05 | Agree the v1 outcome, target users, and release boundary | Approved product outcome and measurable success criteria | Outcome, boundaries, Classic acceptance, and custom-deck exclusion approved; two-client Firebase remains a separate release gate |
+| P0-06 | Build and review dependency-aware delivery phases | Approved roadmap, phase goals, dependencies, and exit criteria | Phase order and exit criteria approved as the Phase 0 roadmap proposal; implementation remains gated on separate phase plans and decision records |
 
 ## 6. Initial baseline
 
@@ -72,6 +72,10 @@ prompt-driven behaviour; existing prompt/Gemini integration is to be retired
 and the product direction revised around non-LLM gameplay. This supersedes the
 earlier inclusion of one prompt-driven behaviour. Emil selected this revised
 direction on 2026-10-10.
+
+Custom-deck import and play remain available in the application but are
+explicitly outside the v1 acceptance and release gates. The scope decision does
+not authorize removing the existing functionality.
 
 The security gate is also agreed: room/chat access must be narrowed to
 authorized room members and roles before public release. The detailed
@@ -128,48 +132,105 @@ changes to Firestore rules or application behavior in Phase 0.
 - A room member may submit only for their own player identity and may use room
   chat. Members can read shared game state, but only a player can read their
   own hand.
-- Submissions remain private from other players until the Card Czar opens
-  judging; at that point they are visible to the room. Only the current Card
-  Czar selects the winner.
+- The current Card Czar can read submissions for adjudication. Other members
+  cannot read them until the Card Czar opens judging; then submissions are
+  visible to the room. Only the current Card Czar selects the winner.
 - Private hands and unrevealed submissions require per-player data isolation.
   They cannot remain in a shared room document if member rules are expected to
   protect them, because Firestore document reads do not hide individual fields.
-- Phase 2 must design a safe room-code join path and separate shared state from
-  per-player private state before implementing the access rules. Authorization
-  allow/deny cases are recorded in `TEST_PLAN.md`.
+- The multiplayer security phase must design a safe room-code join path and
+  separate shared state from per-player private state before implementing the
+  access rules. Authorization allow/deny cases are recorded in `TEST_PLAN.md`.
 
-## 8. Provisional phase sequence
+## 8. Approved Phase 0 roadmap proposal
 
-This sequence is for discussion and will be revised after document reconciliation,
-risk verification, and detailed acceptance criteria:
+The sequence was approved as the Phase 0 roadmap proposal. It is not
+implementation authorization.
+Local Classic gameplay is deliberately sequenced before Firestore hardening
+because the approved one-human/two-bot acceptance does not depend on deployed
+Firebase or multiple clients. The deployed multiplayer gate depends on the
+security/data-model phase completing first.
 
-1. **Phase 0 — Baseline and roadmap reset:** complete the activities above.
-2. **Phase 1 — Non-LLM scope and test-foundation reset:** retire the existing
-   Gemini/prompt runtime path, align project-facing documents with the
-   non-LLM direction, and correct the test generator's false cases.
-3. **Phase 2 — Multiplayer security gate:** redesign shared/private room data
-   and the room-code join flow, implement member/role-based authorization, then
-   validate allowed and denied operations with Firebase Emulator rules tests.
-4. **Phase 3 — Deployed multiplayer verification:** verify real-account
-   sign-in and two-client room/game flows on the deployed app; resolve confirmed
-   blockers and add regression coverage.
-5. **Phase 4 — Core gameplay and reliability:** validate key non-LLM gameplay
-   paths, triage known defects, and add regression coverage for the agreed v1.
-6. **Phase 5 — Release hardening and portfolio readiness:** verify the
-   installable PWA and offline app shell, accessibility, mobile, and recovery
-   expectations; align public documentation, test evidence, and demonstration
-   materials with the shipped and verified v1.
+### Phase 1 — Non-LLM and test-foundation reset
 
-No implementation work in Phases 1–5 is authorized by this provisional
-sequence. Each phase needs its own reviewed plan and decision record.
+- **Goal:** align executable behavior and test evidence with the selected v1
+  direction.
+- **Dependencies:** Phase 0 decisions and roadmap approved.
+- **Work:** remove the runtime Gemini/prompt dependency while preserving
+  deterministic gameplay; repair the Playwright table-row generator; regenerate
+  and review specs; repair and explicitly triage the stability matrix.
+- **Exit criteria:** gameplay completes with runtime model requests blocked;
+  generator regression cases reject table headers/separators and accept valid
+  IDs; regenerated output contains no header/separator test cases; the
+  stability matrix has meaningful titles, sections, requirements, and reviewed
+  statuses.
+
+### Phase 2 — Local Classic gameplay acceptance
+
+- **Goal:** prove the approved one-human/two-bot Classic game loop locally.
+- **Dependencies:** Phase 1 test-foundation reset.
+- **Work:** add deterministic regression coverage for selection/submission,
+  Card Czar rotation and judging, score changes, hand replenishment, and match
+  completion at two points.
+- **Exit criteria:** a repeatable automated test reaches game over; the Czar
+  cannot submit; each non-Czar submits the required PICK count; each result
+  awards exactly one point; the Czar rotates; the human hand returns to ten;
+  the first player to two wins and no further round starts; no model API call
+  is required.
+
+### Phase 3 — Room data isolation and authorization
+
+- **Goal:** enforce the approved member/role access policy without exposing
+  private player data.
+- **Dependencies:** Phase 1 test infrastructure and approved Phase 0 policy.
+- **Work:** design and review the room-code join flow; replace nonmember
+  open-room browsing; separate shared room/game state from per-player hands and
+  unrevealed submissions; implement Firestore rules and Emulator tests for
+  FA-01 through FA-08.
+- **Exit criteria:** every FA case passes against the Firebase Emulator;
+  nonmembers cannot read room/game data; only the host manages lobby/start/round
+  advancement; only the current Czar selects a winner; members write only
+  their own submissions; hands are private; submissions are revealed only
+  after judging opens; chat is member-only.
+
+### Phase 4 — Deployed two-client multiplayer gate
+
+- **Goal:** verify real-account synchronization against the deployed app.
+- **Dependencies:** Phase 3 authorization and data isolation pass.
+- **Work:** exercise two distinct real accounts in separate clients through
+  room creation/join, lobby synchronization, a complete round, judging,
+  advancement, and chat.
+- **Exit criteria:** both clients observe consistent membership and shared
+  game state; private hands and unrevealed submissions remain isolated;
+  authorized operations succeed and unauthorized operations are denied; a
+  dated report records environment and outcomes. If automation is infeasible,
+  retain an explicit manual pre-release gate rather than marking it passed.
+
+### Phase 5 — PWA, accessibility, and release readiness
+
+- **Goal:** verify install/offline behavior, recoverability, mobile usability,
+  and portfolio evidence for the selected v1.
+- **Dependencies:** Phase 2 gameplay and Phase 4 multiplayer gate; Phase 3
+  security must remain passing.
+- **Work:** address KI-01 reload/data loss and KI-02 game-mode accessibility;
+  verify installability, offline app-shell loading, 320px layouts, keyboard
+  and assistive-technology use, recovery, and public documentation.
+- **Exit criteria:** after one successful online visit/install has cached the
+  app shell, a reload while offline loads that shell; service-worker
+  activation/update does not lose in-progress sign-in data; critical journeys
+  remain usable at 320px and via keyboard/accessibility checks; recovery cases
+  pass; README and portfolio material match verified behavior and disclose
+  multiplayer's connectivity requirement.
+
+No implementation work in Phases 1–5 is authorized by this roadmap proposal.
+Each phase needs its own reviewed plan and decision record.
 
 ## 9. Risks and constraints
 
 - Project status documents conflict; historical “done” checkboxes are not
   equivalent to current verification. README and `TEST_PLAN.md` now flag stale
   claims, and the old prompt-driven brief/vision and backlog are labelled
-  historical. The proposed source-of-truth hierarchy and implementation-status
-  reconciliation still need review.
+  historical. Broader implementation-status reconciliation remains open.
 - Classic gameplay criteria are approved and mapped to `TEST_PLAN.md`;
   the separate two-client release gate remains unverified.
 - Generated Playwright specs materially overstate coverage if counted as
@@ -210,15 +271,14 @@ Phase 0 is complete when:
   available.
 - Known issues and security/PWA risks are prioritized with owners or next
   verification actions.
-- A dependency-aware roadmap exists with phase goals, non-goals, risks, and
+- A dependency-aware roadmap exists with phase goals, dependencies, and
   measurable exit criteria.
 - The roadmap and decision record are reviewed before implementation begins.
 
 ## 11. Decision-record gate
 
-No Phase 0 decision record is marked “Locked” yet. The strategic v1 outcome,
-minimum playable boundary, non-LLM product direction, multiplayer security
-gate, PWA acceptance, and Classic gameplay acceptance are selected or
-approved. The formal decision record and documentation reconciliation remain
-open; that record must contain only decisions and acceptance criteria that
-have actually been approved.
+`PHASE0_DECISION_RECORD.md` records the approved product boundary, gameplay
+acceptance, authorization policy, PWA boundary, source-of-truth hierarchy, and
+roadmap proposal. Phase 0 remains in progress until remaining evidence-status
+reconciliation and risk triage are complete; later implementation remains
+gated on reviewed phase-specific plans and decision records.
