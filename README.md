@@ -1,7 +1,8 @@
 # CAH-PWA
 
-**A browser-based party game and portfolio project focused on product analysis,
-quality engineering, and agent-directed delivery.**
+**A browser-based party game for casual play among friends, documented as a
+portfolio example of product analysis, quality engineering, and agent-directed
+delivery.**
 
 Live: **https://emil3663.github.io/cah-pwa/**
 
@@ -42,7 +43,7 @@ repository are the record, not a write-up produced afterwards:
 | Document | What it is |
 |---|---|
 | `PROJECT_BRIEF.md`, `PRODUCT_VISION.md` | Historical runtime-prompt direction; superseded for v1 |
-| `PHASE0_PLAN.md`, `PHASE0_BASELINE.md` | Current v1 direction, evidence baseline, and provisional roadmap |
+| `PHASE0_PLAN.md`, `PHASE0_BASELINE.md`, `PHASE0_DECISION_RECORD.md` | Approved v1 direction and roadmap proposal, evidence baseline, and Phase 0 decisions |
 | `PHASE1_DECISION_RECORD.md`, `PHASE2_DECISION_RECORD.md` | Scope and acceptance criteria locked before building each phase |
 | `PHASE2_RESULT_SYNC.md` | The amendment record — see below |
 | `PHASE_BACKLOG.md`, `PHASE1_TICKETS.md`, `PHASE2_TICKETS.md` | Tickets with scope, deliverables, observable acceptance criteria and explicit dependencies |

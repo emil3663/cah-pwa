@@ -79,7 +79,12 @@ custom visual on top, no `display:none`), or add `role="radiogroup"` /
 `aria-checked` to the custom control if the native inputs must stay
 `display:none` for some other reason.
 
-## KI-03: `js/gemini.js`'s Gemini call has no timeout, so a hung request can stall the round-result screen indefinitely
+## KI-03: Legacy Gemini call has no timeout (superseded for selected v1)
+
+**Status:** The timeout defect remains in the existing code, but runtime model
+calls are outside the approved v1 scope. Phase 1 is to remove this dependency,
+not add timeout/retry behavior. Reassess this issue only if runtime LLM behavior
+is approved again.
 
 **Where:** `js/gemini.js:16` (the `fetch` call to the Gemini endpoint,
 inside `ask()`); caller `app.js` (`resolveRound()`, the
@@ -109,14 +114,8 @@ fallback instead of getting one quick retry first — worth bundling with
 the timeout fix since both touch the same function, not worth its own
 ticket.
 
-**Suggested fix direction (not implemented):** wrap the `fetch` call in
-`gemini.js` with `AbortSignal.timeout(...)` (or an `AbortController` on
-older runtimes) set to a few seconds past typical Gemini Flash latency,
-and have the abort reject with a plain `Error` so `app.js`'s existing
-catch handles it exactly like any other failure — no change needed on the
-caller side. A single bounded retry before falling back is a reasonable
-addition at the same time, since a working fallback already exists to
-land on either way.
+If runtime LLM behavior is approved again, reassess the timeout requirement
+and an appropriate bounded failure policy before restoring this call path.
 
 ---
 

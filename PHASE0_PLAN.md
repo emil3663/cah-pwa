@@ -1,8 +1,8 @@
 # Phase 0 Plan — Current-State Baseline and Roadmap Reset
 
-**Version:** 1.3  
-**Date:** 2026-10-10  
-**Status:** In progress
+**Version:** 1.4
+**Date:** 2026-10-11
+**Status:** Complete — implementation phases remain gated by their own reviewed plans and decision records
 
 ## 1. Purpose
 
@@ -43,9 +43,9 @@ into phases with explicit dependencies, risks, and exit criteria.
 |---|---|---|---|
 | P0-01 | Review project goals, backlog, status documents, risks, and test assets | Evidence-based current-state inventory | Complete |
 | P0-02 | Run the full local Playwright suite and record pass/fail/skip totals | Dated test baseline with limitations | Complete |
-| P0-03 | Reconcile conflicting and stale documents; identify a source of truth | List of updates needed and proposed ownership for status | In progress; hierarchy approved, stale Test Plan sections labelled historical, Firebase/chat/custom-deck/history evidence reconciled, and custom-deck v1 scope decided; broader feature status still needs evidence-based reconciliation |
-| P0-04 | Triage known defects and unverified release/security claims | Prioritized risk register with verification needs | In progress; KI-01 reload and sign-in field loss reproduced locally; room/chat access policy and test cases are approved, while deployed behavior and rules remain unverified |
-| P0-05 | Agree the v1 outcome, target users, and release boundary | Approved product outcome and measurable success criteria | Outcome, boundaries, Classic acceptance, and custom-deck exclusion approved; two-client Firebase remains a separate release gate |
+| P0-03 | Reconcile conflicting and stale documents; identify a source of truth | Evidence-based status register and source-of-truth hierarchy | Complete; current feature claims distinguish code presence from verification, conflicting snapshots are marked historical, and the approved hierarchy identifies canonical records |
+| P0-04 | Triage known defects and unverified release/security claims | Prioritized risk register with next verification action | Complete; each release-critical risk has a priority and phase-gated verification action; deployed behavior and rules remain unverified |
+| P0-05 | Agree the v1 outcome, target users, and release boundary | Approved product outcome and measurable success criteria | Outcome, primary audience, boundaries, Classic acceptance, and custom-deck exclusion approved; two-client Firebase remains a separate release gate |
 | P0-06 | Build and review dependency-aware delivery phases | Approved roadmap, phase goals, dependencies, and exit criteria | Phase order and exit criteria approved as the Phase 0 roadmap proposal; implementation remains gated on separate phase plans and decision records |
 
 ## 6. Initial baseline
@@ -65,6 +65,10 @@ The primary outcome and minimum playable release boundary have been selected:
 playable release with a portfolio demonstration of the product and its
 analysis/QA delivery, while deferring everything not required to prove those
 outcomes.
+
+The primary product audience is casual players and friends playing together.
+The portfolio audience is secondary and informs how the project documents its
+analysis and QA process, not the game's core UX priorities.
 
 The minimum boundary is a deployed GitHub Pages app with real-account,
 two-client Firebase multiplayer. The v1 will not use runtime LLM calls or
@@ -227,10 +231,12 @@ Each phase needs its own reviewed plan and decision record.
 
 ## 9. Risks and constraints
 
-- Project status documents conflict; historical “done” checkboxes are not
-  equivalent to current verification. README and `TEST_PLAN.md` now flag stale
-  claims, and the old prompt-driven brief/vision and backlog are labelled
-  historical. Broader implementation-status reconciliation remains open.
+- Historical “done” checkboxes are not equivalent to current verification.
+  README and `TEST_PLAN.md` identify their current-vs-historical boundaries;
+  the project brief, vision, and backlog are labelled historical. The current
+  feature evidence and verification limits are summarized in
+  `PHASE0_BASELINE.md`; a historical checklist is not treated as a verified
+  inventory.
 - Classic gameplay criteria are approved and mapped to `TEST_PLAN.md`;
   the separate two-client release gate remains unverified.
 - Generated Playwright specs materially overstate coverage if counted as
@@ -262,7 +268,7 @@ Each phase needs its own reviewed plan and decision record.
 
 ## 10. Exit criteria
 
-Phase 0 is complete when:
+Emil approved the Phase 0 closeout on 2026-10-11. The criteria are met:
 
 - The intended v1 outcome and target release boundary are explicitly approved.
 - Product and technical status claims are reconciled or clearly marked
@@ -279,6 +285,6 @@ Phase 0 is complete when:
 
 `PHASE0_DECISION_RECORD.md` records the approved product boundary, gameplay
 acceptance, authorization policy, PWA boundary, source-of-truth hierarchy, and
-roadmap proposal. Phase 0 remains in progress until remaining evidence-status
-reconciliation and risk triage are complete; later implementation remains
-gated on reviewed phase-specific plans and decision records.
+roadmap proposal. P0-01 through P0-06 are complete. Phase 0 closeout is
+approved; later implementation remains gated on reviewed phase-specific plans
+and decision records.

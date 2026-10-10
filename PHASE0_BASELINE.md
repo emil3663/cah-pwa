@@ -1,17 +1,18 @@
 # Phase 0 Current-State Baseline
 
-**Version:** 1.6  
-**Date:** 2026-10-10  
-**Status:** In progress — initial verification incomplete
+**Version:** 1.7
+**Date:** 2026-10-11
+**Status:** Phase 0 complete — release verification remains incomplete
 
 ## 1. Executive assessment
 
 The repository contains a substantial game implementation, a legacy runtime
 prompt integration for round praise, Firebase-backed multiplayer code, and a
 documented agent-directed workflow. Emil has now selected a non-LLM v1; the
-legacy prompt integration is slated for retirement. The primary planning risk
-is that current product intent, delivered scope, and test status are recorded
-in several documents that disagree or have not been refreshed together.
+legacy prompt integration is slated for retirement. Earlier records contained
+conflicting product intent, feature status, and test claims. Phase 0 has
+established a source-of-truth hierarchy and an evidence register; historical
+checklists remain explicitly non-authoritative.
 
 The baseline supports a narrow conclusion: the tested local smoke and recovery
 journeys are currently green, but 225 tests are skipped and major deployed,
@@ -100,10 +101,11 @@ It does not yet support a claim that the complete product is release-ready.
 | Known issue KI-01 | With service workers enabled in a fresh local Chromium context, the first-load activation produced two main-frame navigations; the post-reload navigation type was `reload`, and previously filled synthetic email/password fields were cleared. | Reload and field loss are reproduced locally. Deployed-browser behavior and real-user impact remain unverified. Keep the defect open for an authorized implementation phase. |
 | Known issue KI-02 | The TestForge regression verifies that the game-mode radio is absent from the accessibility role tree while the underlying input can still be toggled through its label. | Reproduced by a local browser regression test; remediation remains open. |
 | Known issue KI-03 | `js/gemini.js` has an unbounded request; `resolveRound()` falls back only if the request rejects. | Superseded for v1 by the non-LLM decision. Retire the call path in planned work rather than adding a timeout, unless runtime LLM behaviour is later approved. |
-| Planning records | `PHASE_BACKLOG.md`, `TEST_PLAN.md`, `TASK_BREAKDOWN.md`, `TASK_BREAKDOWN_V2.md`, README, and product documents carry differing dates/statuses and conflicting feature claims. | The Phase 0 source-of-truth hierarchy is approved. README and `TEST_PLAN.md` flag stale claims; brief, vision, and backlog are labelled historical. Current implementation status still needs verification. |
-| Content/licensing | `CONTENT_LICENCE_DECISION.md` records a decision; README contains attribution and `LICENSE` exists. Some acceptance checkboxes in the decision record remain unchecked. | The described outcome appears present, but the decision record's completion state is inconsistent and needs housekeeping. |
+| Planning records | `PHASE_BACKLOG.md`, `TEST_PLAN.md`, `TASK_BREAKDOWN.md`, `TASK_BREAKDOWN_V2.md`, README, and product documents carry differing dates/statuses and conflicting feature claims. | The approved hierarchy distinguishes current scope, test definitions, verification evidence, and historical work notes. Current feature claims are classified in this table; old checkboxes are not treated as verification. |
+| Content/licensing | `CONTENT_LICENCE_DECISION.md` records a decision; README contains the attribution, non-commercial and non-affiliation statements, and `LICENSE` exists. | The decision's documentary acceptance criteria are present; the checklist is marked complete. The record explicitly does not constitute legal advice. |
+| Target audience | Emil confirmed the primary audience on 2026-10-11. | Casual players and friends are primary; portfolio reviewers are secondary and the portfolio framing must not override player UX priorities. |
 
-## 4. Conflicts and stale records to reconcile
+## 4. Historical conflicts and their disposition
 
 1. **Feature status:** `PHASE_BACKLOG.md` marks multiplayer, chat, custom packs,
    and history done, while its older `TEST_PLAN.md` snapshot said some were not
@@ -186,21 +188,22 @@ This hierarchy is intended to stop historical task lists and public summaries
 from competing with approved scope. Existing implementation-status claims still
 need evidence-based reconciliation under it.
 
-## 5. Initial risk register
+## 5. Prioritized risk register
 
-| Priority | Risk | Evidence | Phase 0 disposition |
+Priorities are preliminary triage for sequencing, not approved severity labels.
+The phase named in the final column owns the next verification action; no action
+below authorizes implementation before that phase's plan and decision record.
+
+| Priority | Risk | Evidence | Next verification action / phase |
 |---|---|---|---|
-| High | A green aggregate run can be mistaken for broad coverage. | 225 skipped; 37 passed; 33 malformed generated skips; stability CSV is untriaged. The raw JSON report is git-ignored. | Emil approved `PHASE0_BASELINE.md` as the durable test summary; keep totals, named executed cases, and limitations current there. Do not create a duplicate report. |
-| High | Room/chat rules permit broader access than the intended trust model. | `firestore.rules` permits any authenticated user to read/write room and chat docs. | **Resolved:** Emil requires member/role-based access before public release. A rules review and authorization tests are still required; no rule changes in Phase 0. |
-| Medium | Service-worker lifecycle, offline behavior, and first-load update UX need release validation. | Standard suite blocks service workers and skips PW-02. Isolated local probe reproduced reload and clearing of filled sign-in fields; offline behavior was not tested. | Reload/data-loss reproduction is complete locally. Keep mitigation and offline/deployed-browser validation for the authorized PWA phase; do not treat the probe as a fix or release sign-off. |
-| Medium | Old prompt-driven implementation remains despite the approved non-LLM direction. | Runtime praise call path remains in `app.js`/`js/gemini.js`; README and brief/vision are relabelled to reflect historical scope. | Retire the runtime path in an authorized implementation phase, confirm deterministic gameplay remains intact, and remove or revise KI-03 as appropriate. |
-| Medium | Test generator creates false cases from Markdown table syntax. | Regex in `scripts/generate_playwright_tests.js` also matches header and separator rows; 33 such skips appeared in the report. | Correct and test the parser, review generated output, and refresh the test inventory in the test-foundation phase. |
-| Medium | Test stability inventory is mistaken for a completed risk assessment. | Generator sets every test to “Needs Implementation” and captures full Markdown rows as titles; stability is not assessed. | Repair and explicitly triage the matrix in the test-foundation phase. |
-| Medium | First-load service-worker activation reloads the page and clears in-progress sign-in fields. | Isolated local Chromium probe confirmed reload and clearing of synthetic email/password values; deployed behavior and real-user impact were not tested. | Reproduction is confirmed locally. Validate an approved mitigation with focused regression coverage in the PWA phase. |
-| Medium | Game-mode controls are inaccessible to assistive technology. | KI-02 is confirmed by a local regression asserting no radio role is exposed. | Keep as an open defect; include keyboard and screen-reader regression criteria in release-quality work. |
-
-Priorities are preliminary triage, not approved severity labels or implementation
-authorization.
+| High | Aggregate test totals can be mistaken for broad coverage. | 37 passed, 225 skipped, including 33 malformed generated outcomes; the stability inventory is untriaged. | Phase 1: repair and regression-test test generation, review generated output, and explicitly triage the stability inventory. Keep verified totals and limitations current in this baseline. |
+| High | Room/chat access exceeds the approved member/role trust model. | Current rules permit any authenticated user to read/write room and chat documents; shared room documents also contain private data. | Phase 3: design safe room-code joining and private-data separation, then pass FA-01..FA-08 against the Firebase Emulator before any deployed multiplayer gate. |
+| High | Deployed two-client multiplayer is not verified. | Local tests use regression accounts and bots; there is no verified two-real-account end-to-end run. | Phase 4: after Phase 3 passes, complete the synchronized two-client game and retain dated environment/outcome evidence; otherwise keep the manual release gate open. |
+| Medium | Service-worker activation can reload and clear sign-in fields; offline behavior is unverified. | Local Chromium reproduced the reload and loss of synthetic credentials; standard tests block service workers. | Phase 5: validate a reviewed mitigation with a service-worker-enabled regression and verify app-shell loading offline on supported targets. |
+| Medium | Runtime prompt/Gemini code conflicts with the approved non-LLM v1. | `app.js` still calls the praise prompt through `js/gemini.js`; no current test proves gameplay is independent of the model path. | Phase 1: trace/remove the runtime dependency and verify the approved Classic game completes while model requests are blocked; update KI-03 to match its final status. |
+| Medium | Game-mode controls are absent from the accessibility tree. | KI-02 is confirmed by a local regression; no full keyboard or screen-reader assessment exists. | Phase 5: include keyboard and assistive-technology checks for game-mode selection and other critical journeys. |
+| Medium | History behavior beyond resume-list coverage is unverified. | Code records completed history; existing recovery tests do not verify detailed contents or the 12-entry retention limit. | During phase planning, decide whether detailed history/retention is in the release boundary; if included, add direct regression coverage before claiming it verified. |
+| Low | Old feature checklists and test inventories can be mistaken for current status. | Backlog and Test Plan retain historical checkboxes; generator/matrix outputs are not verification. | Ongoing: preserve the evidence table and approved source hierarchy; future status updates must cite current tests or be labelled unverified/historical. |
 
 ## 6. Product decisions recorded
 
@@ -252,6 +255,9 @@ authorization.
     and authorization, deployed two-client multiplayer, and finally PWA,
     accessibility, and release readiness. Each implementation phase requires
     its own reviewed plan and decision record.
+14. **Confirmed on 2026-10-11:** casual players and friends are the primary
+    product audience; portfolio reviewers are secondary. UX and release
+    trade-offs prioritize casual play among friends.
 
 The approved local acceptance criteria are in `PHASE0_PLAN.md` and mapped in
 `TEST_PLAN.md`; the full scenario is not yet implemented as a regression test.
@@ -260,22 +266,25 @@ The earlier plan for a prompt-driven v1 behaviour is superseded by the
 2026-10-10 decision. The selected non-LLM direction means no runtime model
 request or API key is a prerequisite for round completion.
 
-## 7. Immediate next actions
+## 7. Phase 0 closeout and subsequent gates
 
-1. Reconcile remaining feature/status claims against repository evidence using
-   the approved hierarchy; README and `TEST_PLAN.md` identify stale/current-
-   status boundaries, while the old brief, vision, and backlog are historical.
-2. In the authorized test-foundation phase, correct the Playwright generator's
-   row matching, review bogus generated cases, and repair/triage the stability
-   matrix before refreshing the coverage inventory.
-3. Keep `PHASE0_BASELINE.md` current as the durable summary; retain the full
-   JSON report as a local diagnostic artifact without duplicating it in another
-   versioned report.
-4. Keep the reproduced KI-01 first-load reload open for an authorized PWA fix;
-   authorization policy and allow/deny cases are now recorded, while rules,
-   schema, and live behavior remain unimplemented and unverified.
-5. Formalize the approved product and gameplay decisions in the Phase 0
-   decision record; keep Wild and Question First out of v1 acceptance.
-6. Convert the approved outcome and risk disposition into reviewed phase
-   plans, acceptance criteria, and dependencies, including a safe room-code
-   join/data-separation design before Phase 3 implementation.
+1. P0-03 reconciliation is complete: current feature evidence distinguishes
+   code presence from test and deployment verification; conflicting checklists
+   are explicitly historical. The README, `TEST_PLAN.md`, `PHASE_BACKLOG.md`,
+   project brief, and vision identify their current or historical role.
+2. P0-04 risk triage is complete: the prioritized risks name their next
+   verification action and the phase responsible. These are planning
+   assignments, not implementation authorization.
+3. `PHASE0_DECISION_RECORD.md` and the approved roadmap proposal record the
+   selected scope and release gates. Emil approved the Phase 0 closeout on
+   2026-10-11; the primary audience is casual players and friends.
+4. Phase 1 remains gated on its own reviewed plan and decision record. Once
+   authorized, repair the Playwright generator, review malformed generated
+   cases, repair and triage the stability inventory, and remove the runtime
+   model dependency while verifying deterministic gameplay.
+5. Retain this file as the durable test summary. Keep the full JSON report as a
+   local diagnostic artifact rather than creating a duplicate versioned
+   report.
+6. Keep all unverified release gates open: local Classic regression,
+   Firestore emulator authorization, deployed two-client play, and PWA/offline
+   and accessibility validation.

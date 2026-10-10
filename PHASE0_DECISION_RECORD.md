@@ -1,8 +1,8 @@
 # Phase 0 Decision Record (Locked)
 
-Date: 2026-10-10
+Date: 2026-10-11
 Scope: Establish the verified project baseline, approve the v1 boundary, and sequence delivery phases
-Status: Approved; Phase 0 closeout in progress
+Status: Approved; Phase 0 complete
 
 ## Decisions
 
@@ -50,6 +50,10 @@ Status: Approved; Phase 0 closeout in progress
 - Phase 5 verifies PWA, accessibility, and release readiness.
 - This roadmap approves sequencing only; each implementation phase requires its own reviewed plan and decision record.
 
+9. Casual players and friends are the primary product audience.
+- Portfolio reviewers are a secondary audience for the project's analysis and QA evidence.
+- Product UX and release trade-offs prioritize casual play among friends.
+
 ## Acceptance Criteria
 
 1. Evidence baseline
@@ -62,6 +66,7 @@ Status: Approved; Phase 0 closeout in progress
 
 3. Product and authorization boundaries
 - The selected v1 outcome and release gates above are stated consistently in the current project records.
+- Casual players and friends are identified as the primary product audience; portfolio reviewers are secondary.
 - The room/chat policy is mapped to planned authorization cases in `TEST_PLAN.md`, without claiming that rules or deployed behavior have passed.
 
 4. Delivery roadmap

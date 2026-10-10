@@ -69,10 +69,14 @@ such. The card data is third-party, non-commercial, and now credited.
 
 ## Acceptance criteria
 
-- [ ] `README.md` contains the Attribution and licensing section above.
-- [ ] A `LICENSE` file exists covering the original code.
-- [ ] The README states the non-commercial, unaffiliated position explicitly.
-- [ ] The position can be explained in one sentence at interview, from this record.
+- [x] `README.md` contains the Attribution and licensing section above.
+- [x] A `LICENSE` file exists covering the original code.
+- [x] The README states the non-commercial, unaffiliated position explicitly.
+- [x] The position can be explained in one sentence at interview, from this record.
+
+The documentary acceptance criteria were checked against the current README and
+LICENSE on 2026-10-11. This record states the project's position; it is not
+legal advice.
 
 ## Note on scope of this record
 

@@ -1,7 +1,7 @@
 # 🃏 Cards Against Humanity — Test Plan
 
-**Version:** 1.7
-**Last updated:** 2026-10-10
+**Version:** 1.8
+**Last updated:** 2026-10-11
 **Status:** Historical test inventory with approved current-v1 acceptance — refresh required
 
 > **Current direction:** This plan's original feature-status table and sprint
@@ -15,7 +15,7 @@
 
 ## 1. App Overview
 
-A browser-based, PWA-ready implementation of Cards Against Humanity.  
+A browser-based, PWA-ready party game for casual play among friends.
 Players create or join rooms, select game modes, play cards, and the Card Czar
 judges each round. The v1 direction excludes runtime LLM calls; current praise
 prompt integration is legacy code scheduled for retirement in an authorized
