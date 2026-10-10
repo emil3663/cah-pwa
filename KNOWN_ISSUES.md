@@ -30,9 +30,19 @@ silently wipes it with no warning.
 deliberate, working workaround for the *test suite*, confirmed by
 `tests/generated/3-7-pwa/pw-02.spec.js`'s own comment ("Service worker is
 blocked by playwright.config.js"). That correctly keeps the suite stable,
-but it also means nothing in the existing suite ever exercises this path
-with a real service worker present, so the underlying issue was never
-visible to it.
+but it also means no test in the existing suite exercises this path with a
+real service worker present.
+
+**Phase 0 verification (2026-10-10):** An isolated local Chromium probe with
+service workers enabled observed two main-frame navigations in a fresh context;
+the page was controlled by the worker after navigation, and the final
+Performance Navigation entry reported `type: "reload"`. This reproduces the
+first-load reload behavior and is consistent with the `controllerchange`
+handler above. In a follow-up run, synthetic email and password values entered
+before the reload were both empty after it. This confirms the data-loss impact
+in local Chromium. Other browsers, deployed behavior, and offline loading were
+not verified. The temporary probe was removed and the standard test
+configuration was not changed.
 
 **Suggested fix direction (not implemented, just the shape of it):**
 either debounce/guard the reload so it doesn't fire over an in-progress

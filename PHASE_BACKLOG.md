@@ -6,10 +6,15 @@
 - [x] Add regression and smoke test cases to TEST_PLAN.md
 - [x] Feature merged to `main`
 - [x] Smoke-tested on localhost and GitHub Pages
-# Phase Backlog (Post-Auth)
+# Phase Backlog (Historical Implementation Record)
+
+**Status:** Historical phase checklist; not the current delivery roadmap.
+For the selected v1 boundary and provisional sequencing, see `PHASE0_PLAN.md`.
 
 ## Goal
-Track the remaining long-term roadmap items as concrete phases so the team can execute in order.
+This checklist records earlier implementation claims. Its completion markers
+are not current verification evidence; see `PHASE0_BASELINE.md` for known
+verification gaps.
 
 ## Phase A: Firestore Security Hardening
 - [x] Restrict `users/{uid}` reads/writes to authenticated owner only.

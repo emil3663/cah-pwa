@@ -2,8 +2,13 @@
 
 **Version:** 1.0
 **Date:** 2026-05-25
-**Status:** Draft for Emil's review
+**Status:** Historical — superseded for v1 by the 2026-10-10 Phase 0 direction
 **Author:** Martin (with assistant support)
+
+> **Historical brief:** This document records the original runtime-prompt
+> project thesis. Emil's 2026-10-10 Phase 0 decision supersedes that thesis for
+> v1: runtime LLM calls and prompt-driven behaviour are out of scope. Use
+> `PHASE0_PLAN.md` and `PHASE0_BASELINE.md` for the current v1 direction.
 
 ## 1) Background
 

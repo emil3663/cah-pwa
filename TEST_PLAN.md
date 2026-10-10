@@ -1,8 +1,15 @@
 # 🃏 Cards Against Humanity — Test Plan
 
-**Version:** 1.2  
-**Last updated:** 2026-05-25  
-**Status:** In active development
+**Version:** 1.6
+**Last updated:** 2026-10-10
+**Status:** Historical test inventory with approved current-v1 acceptance — refresh required
+
+> **Current direction:** This plan's original feature-status table and sprint
+> roadmap predate the Firebase multiplayer implementation and the 2026-10-10
+> non-LLM v1 decision. Treat the case catalogue as a starting inventory, not
+> current implementation status or an approved delivery roadmap. The current
+> release boundary and provisional sequence are in `PHASE0_PLAN.md`; the
+> evidence and known gaps are in `PHASE0_BASELINE.md`.
 
 ---
 
@@ -10,8 +17,9 @@
 
 A browser-based, PWA-ready implementation of Cards Against Humanity.  
 Players create or join rooms, select game modes, play cards, and the Card Czar
-judges each round. Supports friend lists, user stats, and tongue-in-cheek
-round-winner praise.
+judges each round. The v1 direction excludes runtime LLM calls; current praise
+prompt integration is legacy code scheduled for retirement in an authorized
+implementation phase.
 
 Deck content is sourced from the open-source
 [json-against-humanity](https://github.com/crhallberg/json-against-humanity)
@@ -152,6 +160,22 @@ project (CC BY-NC-SA 4.0).
 | CH-09 | Chat cleared on room leave | Leaving the room stops listener; stale messages not shown on re-enter | ⬜ |
 | CH-10 | Unauthenticated blocked | Firestore rejects write from unauthenticated client (rules test) | ⬜ |
 
+### 3.3.1 Firestore Authorization (Phase 2)
+
+These are planned Firestore rules/data-isolation tests, not evidence of current
+behavior. Run them against the Firebase Emulator before relying on the rules.
+
+| ID | Test | Expected Result | Status |
+|----|------|-----------------|--------|
+| FA-01 | Unauthenticated room/chat access | Unauthenticated reads and writes to rooms, private player data, and chats are denied | ⬜ |
+| FA-02 | Nonmember room access | An authenticated nonmember cannot read room/game data or browse rooms; joining by code does not disclose protected data before membership is established | ⬜ |
+| FA-03 | Host-only room lifecycle | Only the host can manage lobby state, start a game, or advance a round | ⬜ |
+| FA-04 | Current Card Czar judging | Only the current Card Czar can select a winner; stale or non-Czar clients are denied | ⬜ |
+| FA-05 | Own-player submission | A member can submit only as their own player identity; they cannot submit as the Card Czar or another player | ⬜ |
+| FA-06 | Private hand isolation | A member can read their own hand but cannot read another player's hand | ⬜ |
+| FA-07 | Member-only room chat | Members can read and write room chat; nonmembers and unauthenticated clients are denied | ⬜ |
+| FA-08 | Submission reveal timing | Other players cannot read submissions while picking; after all eligible players submit, the current Card Czar opens judging and all members can read the submissions, but only the Card Czar can select the winner | ⬜ |
+
 ### 3.4 Game Modes
 
 | ID | Test | Expected Result | Status |
@@ -189,8 +213,8 @@ project (CC BY-NC-SA 4.0).
 | GP-20 | Reroll round limit | Max 2 rerolls per round enforced | ⬜ |
 | GP-21 | Reroll game limit | Max 5 rerolls per game enforced | ⬜ |
 | GP-22 | Mixed deck pool draw | With 2+ decks in user pool, opening hand includes cards from multiple selected decks over repeated rounds | ⬜ |
-| GP-23 | Live praise generation | With a valid GEMINI_API_KEY, round-winner praise is freshly generated per round via `ask('praise', ...)` rather than pulled from WINNER_PRAISES | ⬜ |
-| GP-24 | Praise fallback on API failure | With GEMINI_API_KEY blank (or the Gemini call otherwise failing), round resolves normally and praise falls back to a WINNER_PRAISES random pick, with no visible error to the player | ⬜ |
+| GP-23 | Live praise generation | Historical runtime-LLM case; superseded for v1 by the approved non-LLM direction | Out of v1 scope |
+| GP-24 | Praise fallback on API failure | Historical runtime-LLM case; replace with the v1 requirement that gameplay does not require an external model response | Superseded for v1 |
 
 ### 3.5 Game Over
 
@@ -209,6 +233,40 @@ project (CC BY-NC-SA 4.0).
 | GO-11 | Single-human endgame | No end-game rewards if <2 humans at game end | ⬜ |
 | GO-12 | Mid-game quit payout | Only previously earned round coins are retained | ⬜ |
 | GO-13 | Rounds-to-win from room setup | Setting rounds-to-win to 3 ends match immediately when a player reaches 3 points | ⬜ |
+
+### Approved v1 Classic gameplay acceptance
+
+Emil approved this local gameplay scenario on 2026-10-10. It is not an
+implementation authorization and does not verify Firebase multiplayer. It
+maps to GP-01 through GP-09, GP-12/13, and GO-01 through GO-04/13.
+
+1. Run one human-controlled player and two AI bots in a Classic room with
+   rounds-to-win set to two. The existing regression-account path is acceptable
+   for local automated verification; no second device or deployed Firebase
+   environment is required.
+2. Across rounds, the human and bots take turns as Card Czar. The Card Czar
+   cannot submit; every other participant submits the exact number of cards
+   required by the black card's PICK value.
+3. The Card Czar receives all submissions without a refresh and can select a
+   valid submission. The result shows the winning player and card combination,
+   and exactly one point is added to that winner.
+4. Advancing increments the round, rotates the Card Czar, and replenishes the
+   human player's hand to ten before their next submission turn.
+5. The automated test controls bot decisions repeatably. The first player to
+   two points ends the match; the game-over screen shows the correct winner and
+   final scores, and no further round starts.
+6. Gameplay makes no runtime LLM/API request and does not require a model API
+   key or response.
+
+### Separate two-client multiplayer release gate
+
+Before public release, two distinct real accounts in separate clients must join
+the same room and complete a synchronized game after room/chat member-and-role
+authorization is implemented and tested. This release gate does not block
+independent implementation or automated local gameplay work. Prefer automating
+the two-client check on one machine; if automation is not feasible, track an
+explicit pre-release manual run. Do not report the gate as passed before
+verification.
 
 ### 3.8 AI Player Regression Coverage
 
@@ -303,7 +361,7 @@ project (CC BY-NC-SA 4.0).
 | ID | Test | Expected Result | Status |
 |----|------|-----------------|--------|
 | PW-01 | manifest.json valid | No console errors; installable | ⬜ |
-| PW-02 | Service worker registers | "Activated" in DevTools > Application | ⬜ |
+| PW-02 | Service worker registers and controls first load | Worker controls a fresh page; record navigation/reload behavior. Phase 0 local Chromium probe observed two main-frame navigations, `navigationType: "reload"`, and cleared synthetic sign-in fields (KI-01); deployed/offline behavior remains unverified. | ⚠️ Reload and field loss reproduced locally; regression test not retained |
 | PW-03 | Offline play | App loads from cache when offline | ⬜ |
 | PW-04 | Install prompt (Chrome) | "Add to Home Screen" prompt available | ⬜ |
 

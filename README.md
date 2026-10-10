@@ -1,40 +1,21 @@
 # CAH-PWA
 
-**A multiplayer party game where the behaviour lives in prompt files, not in code.**
+**A browser-based party game and portfolio project focused on product analysis,
+quality engineering, and agent-directed delivery.**
 
 Live: **https://emil3663.github.io/cah-pwa/**
 
-Every point where the system used to make a coded decision — how an AI opponent
-chooses a card, how the Card Czar judges a round, how a themed deck gets
-generated — is now a call to a language model against a designed prompt, with a
-structured fallback to coded behaviour when the model call fails.
+The selected v1 direction is a constrained, playable, non-LLM product and a
+portfolio demonstration of its analysis and QA delivery. The current code still
+contains a legacy runtime prompt path for round-winner praise; retiring it and
+aligning the implementation with the selected direction remain planned work.
+The current release boundary is a deployed GitHub Pages app with real-account,
+two-client Firebase multiplayer, member/role-based room and chat authorization,
+and an installable PWA with offline app-shell loading. Multiplayer requires a
+network connection.
 
-The game is the vehicle. The interesting property is that behaviour became
-**editable and evaluable without touching the application**: change a prompt file,
-change how an opponent plays. That is the same separation that makes AI systems
-testable, and it is why this project exists.
-
----
-
-## The prompt architecture
-
-Prompts live in `prompts/` as editable files rather than as string literals in
-the application. Each one covers a decision the system used to make in code:
-
-- **Opponent strategy** — how an AI player picks from its hand, given the prompt
-  card and its own personality
-- **Judging** — how the Card Czar chooses a winner from the submitted answers
-- **Deck generation** — producing themed card content on demand
-- **Response text** — the dynamic commentary around a round
-
-Every call has a **structured fallback**. If the model is unavailable, returns
-malformed output, or times out, the coded behaviour takes over and the game
-continues. A game that stalls because a model call failed is not a game, and the
-fallback path is treated as a first-class requirement rather than error handling.
-
-Four reusable patterns extracted from this work are documented in `skills/`:
-`llm-fallback-pattern`, `runtime-prompt-replacement`, `prompt-template-format`
-and `phase-decision-record`.
+The earlier prompt-driven thesis is preserved as historical context in
+`PROJECT_BRIEF.md` and `PRODUCT_VISION.md`; it is not the current v1 scope.
 
 ---
 
@@ -43,9 +24,11 @@ and `phase-decision-record`.
 - **Firebase Authentication** with **Firestore** realtime multiplayer
 - Room state moved off local storage into backend state, with real-time round and
   submission sync, and reconciliation logic that prevents duplicate writes
-- **Firestore security rules** (`firestore.rules`) restrict user documents to the
-  authenticated owner and deny all other collections by default — verified by
-  cross-account read and write testing, not by inspection
+- **Firestore security rules** (`firestore.rules`) restrict user profile access
+  to the authenticated owner and deny unlisted collections. Current room and
+  chat rules still allow any authenticated user to read and write those
+  documents; member/role-based authorization is a pre-public-release gate and
+  has not yet been implemented or verified.
 - Progressive web app: `manifest.json` and a service worker, installable on mobile
 - Deployed by GitHub Actions (`.github/workflows/deploy-pages.yml`)
 
@@ -58,7 +41,8 @@ repository are the record, not a write-up produced afterwards:
 
 | Document | What it is |
 |---|---|
-| `PROJECT_BRIEF.md`, `PRODUCT_VISION.md` | What the thing is and why |
+| `PROJECT_BRIEF.md`, `PRODUCT_VISION.md` | Historical runtime-prompt direction; superseded for v1 |
+| `PHASE0_PLAN.md`, `PHASE0_BASELINE.md` | Current v1 direction, evidence baseline, and provisional roadmap |
 | `PHASE1_DECISION_RECORD.md`, `PHASE2_DECISION_RECORD.md` | Scope and acceptance criteria locked before building each phase |
 | `PHASE2_RESULT_SYNC.md` | The amendment record — see below |
 | `PHASE_BACKLOG.md`, `PHASE1_TICKETS.md`, `PHASE2_TICKETS.md` | Tickets with scope, deliverables, observable acceptance criteria and explicit dependencies |
@@ -81,19 +65,17 @@ document. It is a small thing, and it is the most representative artefact here.
 
 Read `tests/README.md` before drawing conclusions from the size of the test tree.
 
-In short: the repository contains **229 Playwright spec files, of which 228 are
-generated scaffolds** produced from `TEST_PLAN.md` by
-`scripts/generate_playwright_tests.js` — one file per test-case ID, ready for
-implementation. 225 of them currently call `test.skip()`. One file,
-`tests/inprogress-completed.spec.js`, is implemented: 4 tests, 13 assertions.
+In the latest local run, the repository contained **235 Playwright spec files**:
+37 tests passed, 225 were skipped, and none failed. All specs are under
+`tests/generated/`; the passing set includes generated-section regression specs
+and skipped scaffolds. The skipped total includes 33 malformed entries
+generated from Markdown table headings/separators, so it does not equal the
+number of distinct planned cases. See `tests/README.md` and `PHASE0_BASELINE.md`
+for coverage limits and test-path details.
 
-The generator is the point. A test plan mechanically expanded into a spec tree
-that maps one-to-one onto its case IDs means coverage can be tracked against the
-plan rather than guessed at. `scripts/generate_test_stability_matrix.js` produces
-the stability matrix as CSV — every case rated stable, moderate, flaky, blocked or
-needs-implementation, so the flaky ones get app test hooks rather than retries.
-
-Implementation of the scaffolds is in progress, critical path first.
+The test generator and stability matrix are planning aids, not proof of
+coverage. The current stability-matrix generator defaults every row to
+"Needs Implementation" and does not currently assess test stability.
 
 ---
 
@@ -101,7 +83,7 @@ Implementation of the scaffolds is in progress, critical path first.
 
 ```bash
 npm install
-npx playwright test          # run the implemented specs
+npx playwright test          # run the suite; generated scaffolds are skipped
 ```
 
 The app itself is static — serve the repository root, or use the live URL above.
