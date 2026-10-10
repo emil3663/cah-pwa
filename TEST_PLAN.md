@@ -1,6 +1,6 @@
 # 🃏 Cards Against Humanity — Test Plan
 
-**Version:** 1.6
+**Version:** 1.7
 **Last updated:** 2026-10-10
 **Status:** Historical test inventory with approved current-v1 acceptance — refresh required
 
@@ -27,7 +27,12 @@ project (CC BY-NC-SA 4.0).
 
 ---
 
-## 2. Current Feature Status
+## 2. Historical Feature Snapshot — Not Current Verification
+
+The status entries below are from an older project snapshot. They are retained
+as historical planning context and do not establish current implementation,
+release readiness, or test coverage. Use `PHASE0_BASELINE.md` for evidence-based
+status and verification limits.
 
 | Feature | Status | Notes |
 |---------|--------|-------|
@@ -59,12 +64,12 @@ project (CC BY-NC-SA 4.0).
 | User stats | ✅ Done | Games played, won, rounds won, win rate |
 | PWA manifest | ✅ Done | |
 | Service worker (offline) | ✅ Done | Caches app shell |
-| Real-time multiplayer | ❌ Not started | Needs WebSocket / WebRTC backend |
-| In-game chat | ❌ Not started | |
-| Custom card packs | ❌ Not started | |
+| Real-time multiplayer | ⚠️ Code exists; cross-client unverified | Firebase room/game sync is present; two-account end-to-end verification remains a pre-release gate |
+| In-game chat | ⚠️ Code exists; authorization unverified | Chat UI and Firestore operations exist; room-member rules and two-client delivery remain unverified |
+| Custom card packs | ⚠️ Import/delete code exists; baseline coverage unverified | Import, validation, ownership, and deletion paths are present; confirm supported behavior and v1 relevance in the later deck review |
 | Spectator mode | ❌ Not started | |
 | Kick / ban player | ❌ Not started | |
-| Game history | ❌ Not started | |
+| Game history | ⚠️ History code exists; coverage is partial | End-of-game history and in-progress/completed lists are present; history retention/details are not covered by the current baseline |
 
 ---
 
@@ -305,12 +310,12 @@ verification.
 | DE-21 | Preview action flow | Claim/pool-add/remove/add-remove-cart actions work from selected preview panel | ⬜ |
 | DE-22 | Category coverage | Store contains 10 categories with 10 decks each | ⬜ |
 | DE-23 | NSFW category visibility | Dark and NSFW grouping is present and collapsible in store | ⬜ |
-| DE-24 | Custom pack import (line mode) | One-card-per-line input saves custom deck when >=20 cards | ✅ |
+| DE-24 | Custom pack import (line mode) | One-card-per-line input saves custom deck when >=20 cards | ⚠️ Code present; not verified in Phase 0 baseline |
 | DE-25 | Custom pack import (JSON array) | JSON string array input saves deck and adds it to deck pool automatically | ⬜ |
 | DE-26 | Custom pack import (JSON object) | Object with name/description/whiteCards is parsed and saved | ⬜ |
 | DE-27 | Custom pack validation floor | Import with <20 cards is rejected with clear message | ⬜ |
-| DE-28 | Custom pack ownership persistence | Imported deck remains owned and selectable after reload | ✅ |
-| DE-29 | Custom pack gameplay draw | Starting a game with custom deck yields cards from imported card list | ✅ |
+| DE-28 | Custom pack ownership persistence | Imported deck remains owned and selectable after reload | ⚠️ Code present; not verified in Phase 0 baseline |
+| DE-29 | Custom pack gameplay draw | Starting a game with custom deck yields cards from imported card list | ⚠️ Code present; not verified in Phase 0 baseline |
 | DE-30 | Custom pack delete | Deleting custom deck removes ownership and falls back pool to starter if needed | ⬜ |
 | DE-31 | Store hides owned purchased decks by default | Purchased non-custom decks are not shown in deck category lists until "Show Owned Decks" is enabled | ⬜ |
 | DE-32 | Store owned toggle override | Toggling "Show Owned Decks" reveals purchased decks and toggling off hides them again | ⬜ |
@@ -367,20 +372,29 @@ verification.
 
 ---
 
-## 4. Known Limitations & Gaps
+## 4. Historical Limitations — Not Current Status
 
-1. **Single-device only** — Room codes are stored in localStorage; real multiplayer
-   across devices requires a backend (WebSocket / Firebase Realtime DB / Supabase).
+The following list predates the Firebase room/game sync and chat work. Do not
+use it as a description of the current architecture or verified limitations.
+See `PHASE0_BASELINE.md` for the current evidence boundary.
+
+1. **Single-device only** — Historical claim; Firebase-backed room and game
+   synchronization code now exists, but cross-client behavior remains unverified.
 2. **Wild / Question-First modes** — Currently differ in label only;
    unique rule variations not yet implemented.
 3. **Card dataset scope** — Current build imports 6 official json-against-humanity packs (502 black, 2032 white) instead of all available packs.
-4. **No in-game chat** — Players cannot communicate during a game.
+4. **No in-game chat** — Historical claim; chat code exists, but authorization
+   and cross-client behavior remain unverified.
 5. **Czar auto-picks** — When you are not the Czar, an AI picks for the Czar;
    real multi-player would have the Czar pick manually on their own device.
 
 ---
 
-## 5. Roadmap / Next Steps
+## 5. Historical Roadmap / Next Steps — Superseded
+
+The sprint sequence below is retained as an old planning record. It assumes a
+different architecture and predates the approved v1 scope. It is not active
+work; use `PHASE0_PLAN.md` for the proposed current roadmap.
 
 ### Sprint 1 (MVP hardening)
 - [ ] Expand from 6 imported official packs to broader official/fan pack selection options

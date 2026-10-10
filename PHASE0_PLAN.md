@@ -43,7 +43,7 @@ into phases with explicit dependencies, risks, and exit criteria.
 |---|---|---|---|
 | P0-01 | Review project goals, backlog, status documents, risks, and test assets | Evidence-based current-state inventory | Complete |
 | P0-02 | Run the full local Playwright suite and record pass/fail/skip totals | Dated test baseline with limitations | Complete |
-| P0-03 | Reconcile conflicting and stale documents; identify a source of truth | List of updates needed and proposed ownership for status | In progress; source-of-truth hierarchy approved and stale documents labelled, but feature/status claims still need evidence-based reconciliation |
+| P0-03 | Reconcile conflicting and stale documents; identify a source of truth | List of updates needed and proposed ownership for status | In progress; hierarchy approved, stale Test Plan sections labelled historical, and Firebase/chat/custom-deck/history evidence reconciled; broader feature status and custom-pack v1 scope remain to be reviewed |
 | P0-04 | Triage known defects and unverified release/security claims | Prioritized risk register with verification needs | In progress; KI-01 reload and sign-in field loss reproduced locally; room/chat access policy and test cases are approved, while deployed behavior and rules remain unverified |
 | P0-05 | Agree the v1 outcome, target users, and release boundary | Approved product outcome and measurable success criteria | Outcome, boundaries, and Classic gameplay acceptance approved; two-client Firebase remains a separate release gate |
 | P0-06 | Build and review dependency-aware delivery phases | Approved roadmap, phase goals, dependencies, and exit criteria | Draft sequence documented; details pending P0-03/04/05 |

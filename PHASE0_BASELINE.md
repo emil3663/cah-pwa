@@ -88,6 +88,8 @@ It does not yet support a claim that the complete product is release-ready.
 | Product direction | `PROJECT_BRIEF.md` and `PRODUCT_VISION.md` record the original runtime-prompt thesis. | Emil's 2026-10-10 decision supersedes it for v1. README and the metadata on the brief/vision now identify the new direction and preserve the old thesis as historical context. |
 | Core game | `TEST_PLAN.md` and README describe auth, rooms, decks, gameplay, stats, and game recovery; QS-01..QS-13 passed locally. | A broad local happy-path slice is implemented and tested. Deployed and real-user journeys still need verification. |
 | Multiplayer | `PHASE_BACKLOG.md` says the Firestore multiplayer foundation and game loop are complete; the smoke tests cover a local AI game, not two authenticated clients. | Treat cross-client multiplayer completion as reported, not currently verified by the automated baseline. |
+| Custom decks | `app.js` contains custom-deck input parsing, minimum-card validation, import, ownership updates, deletion, and store rendering. | Implementation paths are present. The `DE-24`, `DE-28`, and `DE-29` checkmarks were not exercised by the Phase 0 run and are now marked unverified in `TEST_PLAN.md`. The selected v1 documents do not yet settle whether custom packs are in scope. |
+| Game history | `app.js` records end-of-game history and renders in-progress/completed lists; four recovery tests cover list display/resume affordance and persistence. | Recovery-list behavior has focused local coverage. Detailed all-time history content and the 12-entry retention limit are not verified by the Phase 0 baseline. |
 | Prompt integration | `prompts/praise.txt` exists; `app.js` calls `ask('praise', ...)`; `js/gemini.js` reads a prompt file and makes a Gemini request. The configured API key is blank. | **Out of v1 scope by decision.** Emil selected a non-LLM product direction on 2026-10-10. Retire the runtime prompt/Gemini path and reconcile the product documentation; verify no other behavior depends on it. |
 | Runtime model failure handling | `KNOWN_ISSUES.md` records an unbounded Gemini request; the helper in `js/gemini.js` has no timeout. | The timeout issue is superseded by the decision to remove runtime LLM calls from v1. Remove the dependency rather than invest in a timeout path, unless a later approved scope reintroduces it. |
 | PWA/service worker | `service-worker.js` uses cache `cah-v30`; the standard `playwright.config.js` blocks service workers and PW-02 remains a skipped suite test. In an isolated local Chromium probe with service workers allowed, synthetic sign-in values were entered before first-load control; the page made two main-frame navigations, reported `navigationType: "reload"`, and both values were empty after reload. | Reload and sign-in field loss are reproduced locally and are consistent with KI-01's `controllerchange` handler. The probe did not test other browsers, real-user impact, deployed behavior, or offline loading. No application fix was made. |
@@ -104,8 +106,12 @@ It does not yet support a claim that the complete product is release-ready.
 ## 4. Conflicts and stale records to reconcile
 
 1. **Feature status:** `PHASE_BACKLOG.md` marks multiplayer, chat, custom packs,
-   and history done, while `TEST_PLAN.md` still says some of these are not
-   started and describes the app as single-device only.
+   and history done, while its older `TEST_PLAN.md` snapshot said some were not
+   started and described the app as single-device only. `TEST_PLAN.md` now
+   labels its feature snapshot, limitations, and sprint roadmap historical;
+   it records Firebase multiplayer/chat and custom-deck code as present but
+   incompletely verified. Game-history code and recovery-list tests are
+   present, while detailed history behavior remains unverified.
 2. **Test coverage:** README and the test README previously reported four
    implemented tests; both now report the 2026-10-10 local run (37 passed,
    225 skipped). The stability matrix and its generator remain inaccurate and
